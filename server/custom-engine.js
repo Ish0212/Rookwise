@@ -90,9 +90,19 @@ function normalizeOptions(options = {}) {
     const value = options.habits && options.habits[key];
     if (typeof value === 'number' && Number.isFinite(value)) habits[key] = Math.max(0, Math.min(1, value));
   }
+  // Optional per-search time budget (ms). Production callers omit it and get the
+  // rating-derived budget; tests pass a generous one so depth assertions do not
+  // depend on wall-clock time under parallel load.
+  let budgetMs;
+  if (options.budgetMs !== undefined) {
+    if (typeof options.budgetMs !== 'number' || !Number.isFinite(options.budgetMs) || options.budgetMs <= 0) {
+      throw new Error('Budget must be a positive number of milliseconds');
+    }
+    budgetMs = Math.min(60000, options.budgetMs);
+  }
   return {
     rating: Math.max(100, Math.min(2400, rating)), style,
-    preferences, habits,
+    preferences, habits, budgetMs,
     seed: Number.isInteger(options.seed) ? options.seed >>> 0 : Math.floor(Math.random() * 4294967296),
   };
 }
@@ -103,7 +113,7 @@ function searchPosition(fen, suppliedOptions = {}) {
   if (chess.isGameOver()) return { move: null, depth: 0, nodes: 0 };
   const side = chess.turn() === 'w' ? 1 : -1;
   const maxDepth = options.rating < 900 ? 1 : options.rating < 1500 ? 2 : 3;
-  const budget = options.rating < 900 ? 140 : options.rating < 1500 ? 280 : 500;
+  const budget = options.budgetMs ?? (options.rating < 900 ? 140 : options.rating < 1500 ? 280 : 500);
   const deadline = performance.now() + budget;
   const maxNodes = maxDepth === 3 ? 12000 : 4000;
   let nodes = 0;

@@ -40,10 +40,13 @@ test('detected mate overrides rating randomness and terminal positions return nu
 
 test('rating controls search effort while seeded plausible sampling is repeatable', () => {
   const fen = new Chess().fen();
-  const first = searchPosition(fen, { rating: 400, seed: 15 });
-  assert.equal(first.move, searchPosition(fen, { rating: 400, seed: 15 }).move);
+  // Generous budget: depth completion must not depend on wall-clock time while
+  // the rest of the suite runs in parallel.
+  const deterministic = { budgetMs: 10000 };
+  const first = searchPosition(fen, { rating: 400, seed: 15, ...deterministic });
+  assert.equal(first.move, searchPosition(fen, { rating: 400, seed: 15, ...deterministic }).move);
   assert.equal(first.depth, 1);
-  const stronger = searchPosition(fen, { rating: 1000, seed: 15 });
+  const stronger = searchPosition(fen, { rating: 1000, seed: 15, ...deterministic });
   assert.equal(stronger.depth, 2);
   assert.ok(stronger.nodes > first.nodes);
   const observed = new Set(Array.from({ length: 12 }, (_, n) => searchPosition(fen, { rating: 500, seed: n * 100000 }).move));
@@ -114,6 +117,7 @@ test('custom engine validates options, bounds queue length, and rejects requests
   await assert.rejects(engine.chooseMove('invalid'), /FEN/i);
   await assert.rejects(engine.chooseMove(fen, { rating: 'strong' }), /Rating/);
   await assert.rejects(engine.chooseMove(fen, { style: 'unknown' }), /style/);
+  await assert.rejects(engine.chooseMove(fen, { budgetMs: -1 }), /Budget/);
   const pending = Array.from({ length: 8 }, () => engine.chooseMove(fen, { rating: 1900 }));
   const settled = Promise.allSettled(pending);
   await assert.rejects(engine.chooseMove(fen), /busy/);
