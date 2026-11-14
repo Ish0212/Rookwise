@@ -2,19 +2,21 @@ const express = require('express');
 const path = require('node:path');
 const { Chess } = require('chess.js');
 const { StockfishEngine, LEVELS, STYLES } = require('./stockfish-engine');
+const { CustomEngine } = require('./custom-engine');
 const { importPgn } = require('./pgn-import');
 const { PublicImporter } = require('./public-import');
 
-function createApp({ engine = new StockfishEngine(), importer = new PublicImporter() } = {}) {
+function createApp({ engine = new CustomEngine(), analyzer = engine.analyze ? engine : new StockfishEngine(), importer = new PublicImporter() } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.locals.engine = engine;
+  app.locals.analyzer = analyzer;
   const gameJson = express.json({ limit: '1mb', strict: true });
   const moveJson = express.json({ limit: '8kb', strict: true });
   app.use((req, res, next) => (req.path === '/api/import' ? gameJson : moveJson)(req, res, next));
 
   app.post('/api/move', async (req, res) => {
-    const { fen, difficulty = 'medium', style = 'balanced' } = req.body || {};
+    const { fen, difficulty = 'medium', style = 'balanced', rating, preferences, habits } = req.body || {};
     if (typeof fen !== 'string' || fen.length > 200 || /[\r\n]/.test(fen)) {
       return res.status(400).json({ error: 'A valid FEN position is required' });
     }
@@ -23,8 +25,11 @@ function createApp({ engine = new StockfishEngine(), importer = new PublicImport
       return res.status(400).json({ error: 'Difficulty must be easy, medium, or hard' });
     }
     if (!STYLES.includes(style)) return res.status(400).json({ error: 'Style must be balanced, attacking, or careful' });
+    if (rating !== undefined && (!Number.isInteger(rating) || rating < 400 || rating > 2200)) return res.status(400).json({ error: 'Practice level must be an integer from 400 to 2200' });
     try {
-      const move = await engine.move(fen, difficulty, style);
+      const move = engine.chooseMove
+        ? await engine.chooseMove(fen, { rating: rating ?? ({ easy: 500, medium: 800, hard: 1600 })[difficulty], style, preferences, habits })
+        : await engine.move(fen, difficulty, style);
       res.json({ move });
     } catch (error) {
       console.error('Move request failed:', error.message);
@@ -37,7 +42,7 @@ function createApp({ engine = new StockfishEngine(), importer = new PublicImport
     if (typeof fen !== 'string' || fen.length > 200 || /[\r\n]/.test(fen)) return res.status(400).json({ error: 'A valid FEN position is required' });
     try { new Chess(fen); } catch { return res.status(400).json({ error: 'Invalid FEN position' }); }
     try {
-      res.json(await engine.analyze(fen, 'hard', { time: 450 }));
+      res.json(await analyzer.analyze(fen, 'hard', { time: 450 }));
     } catch (error) {
       console.error('Analysis request failed:', error.message);
       res.status(503).json({ error: 'The chess engine is unavailable. Please try again.' });
@@ -60,7 +65,7 @@ function createApp({ engine = new StockfishEngine(), importer = new PublicImport
   const root = path.resolve(__dirname, '..');
   // Only public game assets are served; source, dependencies, and .git stay private.
   app.get(['/', '/index.html'], (req, res) => res.sendFile(path.join(root, 'index.html')));
-  for (const asset of ['app.js', 'styles.css', 'training.js', 'personal.js', 'pieces.js']) {
+  for (const asset of ['app.js', 'styles.css', 'training.js', 'personal.js', 'pieces.js', 'memory.js']) {
     app.get('/' + asset, (req, res) => res.sendFile(path.join(root, asset)));
   }
   app.get('/vendor/chess.js', (req, res) => res.sendFile(path.join(__dirname, 'node_modules/chess.js/dist/esm/chess.js')));
@@ -73,19 +78,20 @@ function createApp({ engine = new StockfishEngine(), importer = new PublicImport
   return app;
 }
 
-function startServer({ port = process.env.PORT || 3001, host = process.env.HOST || '127.0.0.1', engine = new StockfishEngine() } = {}) {
+function startServer({ port = process.env.PORT || 3001, host = process.env.HOST || '127.0.0.1', engine = new CustomEngine() } = {}) {
   const app = createApp({ engine });
   const server = app.listen(port, host, () => {
-    console.log(`Chess AI running at http://${host}:${server.address().port}`);
+    console.log(`Rookmate running at http://${host}:${server.address().port}`);
   });
-  server.on('close', () => engine.close());
+  server.on('close', () => { engine.close(); app.locals.analyzer.close(); });
   return { app, server, engine };
 }
 
 if (require.main === module) {
-  const { server, engine } = startServer();
+  const { server, engine, app } = startServer();
   const shutdown = () => {
     engine.close();
+    app.locals.analyzer.close();
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 1000).unref();
   };

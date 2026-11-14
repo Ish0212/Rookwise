@@ -81,7 +81,7 @@ test('legal selection, illegal moves, engine reply, replay, and takeback work to
   await tick();
   assert.deepEqual(savedChess(app).history(), ['e4', 'e5']);
   app.click('#first');
-  assert.match(app.$('#status').textContent, /Looking back/);
+  assert.match(app.$('#status').textContent, /Reviewing position/);
   assert.match(app.$('[data-square="e2"]').getAttribute('aria-label'), /white pawn/);
   play(app, 'd2', 'd4');
   assert.deepEqual(savedChess(app).history(), ['e4', 'e5']);
@@ -110,7 +110,7 @@ test('new black game starts with an AI move and ignores an old in-flight respons
   const obsolete = app.requests[0];
   app.click('#new-game');
   app.$('[name="color"][value="b"]').checked = true;
-  app.$('[name="difficulty"][value="easy"]').checked = true;
+  app.$('[name="rating"]').value = '500';
   app.$('#setup-form').dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   assert.equal(obsolete.options.signal.aborted, true);
   assert.equal(app.requests.length, 2);
@@ -120,7 +120,7 @@ test('new black game starts with an AI move and ignores an old in-flight respons
   app.requests[1].respond({ move: 'd2d4' });
   await tick();
   assert.equal(app.saved().playerColor, 'b');
-  assert.equal(app.saved().difficulty, 'easy');
+  assert.equal(app.requests[1].body.rating, 500);
   assert.equal(app.$('[data-square]').dataset.square, 'h1');
   play(app, 'd7', 'd5');
   assert.deepEqual(savedChess(app).history(), ['d4', 'd5']);
@@ -174,10 +174,44 @@ test('terminal games display their result and never request another engine move'
   ];
   for (const [saved, expected] of fixtures) {
     const app = await browser(t, saved);
-    assert.equal(app.requests.length, 0);
+    assert.equal(app.requests.filter(request => request.url === '/api/move').length, 0);
+    for (const request of app.requests) request.respond({ error: 'Offline in this fixture' }, false);
+    await tick();
     assert.equal(app.$('#game-label').textContent, 'GAME COMPLETE');
     assert.match(app.$('#status-detail').textContent, expected);
   }
+});
+
+test('resignation cancels pending reply, persists the result and requires confirmation', async t => {
+  const app = await browser(t, session(['e4', 'e5']));
+  play(app, 'g1', 'f3');
+  const pending = app.requests[0];
+  app.click('#resign');
+  assert.equal(app.$('#resign-dialog').open, true);
+  app.click('#cancel-resign');
+  assert.equal(app.saved().resigned, false);
+  app.click('#resign'); app.click('#confirm-resign');
+  assert.equal(app.saved().resigned, true);
+  assert.match(app.$('#status-detail').textContent, /resignation/);
+  pending.respond({ move: 'b8c6' }); await tick();
+  assert.deepEqual(savedChess(app).history(), ['e4','e5','Nf3']);
+  assert.equal(savedChess(app).getHeaders().Result, '0-1');
+  const restored = await browser(t, app.saved());
+  assert.equal(restored.requests.length, 0);
+  assert.equal(restored.$('#resign').disabled, true);
+  assert.match(restored.$('#status').textContent, /resigned/);
+});
+
+test('navigation changes screens without discarding the live game', async t => {
+  const app = await browser(t, session(['e4','e5']));
+  app.window.location.hash = '#training';
+  app.window.dispatchEvent(new app.window.HashChangeEvent('hashchange'));
+  assert.equal(app.window.document.body.dataset.view, 'training');
+  assert.equal(app.$('[data-view-link="training"]').getAttribute('aria-current'), 'page');
+  app.window.location.hash = '#play';
+  app.window.dispatchEvent(new app.window.HashChangeEvent('hashchange'));
+  assert.deepEqual(savedChess(app).history(), ['e4','e5']);
+  assert.equal(app.window.document.body.dataset.view, 'play');
 });
 
 test('corrupt storage falls back to a playable fresh board', async t => {
@@ -242,22 +276,23 @@ test('import, evidence-based puzzle, solve, rematch, and persistent training for
   assert.match(reloaded.$('#training-message').textContent, /already been reviewed/);
 });
 
-test('adaptive settings calibrate only completed unique standard games and preserve earlier settings', async t => {
+test('numeric practice settings use move quality, deduplicate games, and preserve earlier settings', async t => {
   const app = await browser(t);
   const profile = app.modules.get(path.join(root, 'personal.js')).namespace;
-  assert.equal(profile.chooseDifficulty('easy'), 'easy');
-  app.$('#partner-adaptive').checked = true;
-  app.$('#partner-adaptive').dispatchEvent(new app.window.Event('change'));
+  assert.equal(profile.engineOptions().rating, 800);
+  assert.equal(app.$('#partner-adaptive').checked, true);
   assert.equal(profile.chooseDifficulty('easy'), 'medium');
   app.$('#partner-style').value = 'attacking';
   app.$('#partner-style').dispatchEvent(new app.window.Event('change'));
   const games = [['a3', 'a6'], ['h3', 'h6'], ['b3', 'b6']].map(prefix => {
     const chess = new Chess();
     for (const san of [...prefix, 'e4', 'e5', 'Bc4', 'Nc6', 'Qh5', 'Nf6', 'Qxf7#']) chess.move(san);
-    return { pgn: chess.pgn(), playerColor: 'w', difficulty: 'medium' };
+    return { pgn: chess.pgn(), playerColor: 'w', difficulty: 'medium',
+      analysis: { meanLossCp: 15, medianLossCp: 10, samples: 5, totalMoves: 5 } };
   });
   for (const game of games) profile.recordCompletedGame(game);
-  assert.equal(profile.chooseDifficulty('easy'), 'hard');
+  assert.ok(profile.engineOptions().rating > 800);
+  assert.match(app.$('#partner-adjustment').textContent, /Last change: \+/);
   profile.recordCompletedGame(games[2]);
   const shortGame = session(['f3', 'e5', 'g4', 'Qh4#']);
   profile.recordCompletedGame(shortGame);
@@ -271,11 +306,11 @@ test('adaptive settings calibrate only completed unique standard games and prese
   app.$('#partner-style').dispatchEvent(new app.window.Event('change'));
   app.$('#partner-past').value = saved.snapshots[0].id;
   app.$('#partner-past').dispatchEvent(new app.window.Event('change'));
-  assert.equal(profile.chooseDifficulty('easy'), 'medium');
+  assert.equal(profile.engineOptions().rating, 800);
   assert.equal(profile.engineOptions().style, 'attacking');
   saved = app.window.localStorage.getItem('chessai.partner.v1');
   const reloaded = await browser(t, undefined, { 'chessai.partner.v1': saved });
   const restored = reloaded.modules.get(path.join(root, 'personal.js')).namespace;
-  assert.equal(restored.chooseDifficulty('hard'), 'medium');
+  assert.equal(restored.engineOptions().rating, 800);
   assert.equal(restored.engineOptions().style, 'attacking');
 });

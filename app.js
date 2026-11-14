@@ -1,6 +1,7 @@
 import { Chess } from '/vendor/chess.js';
 import { pieces } from './pieces.js';
-import { chooseDifficulty, recordCompletedGame, engineOptions, describePartner, mountPersonal } from './personal.js';
+import { observeGame, learnedOptions } from './memory.js';
+import { chooseDifficulty, recordCompletedGame, engineOptions, describePartner, mountPersonal, setPracticeRating } from './personal.js';
 
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = 'chessai.session.v1';
@@ -17,6 +18,9 @@ function pieceSvg(type, color) {
   return pieces[color + type.toUpperCase()].replace('<svg ', '<svg class="piece" aria-hidden="true" ');
 }
 let game = new Chess();
+let resigned = false;
+let performanceStatus = '';
+const reviewedGames = new Set();
 let playerColor = 'w';
 let difficulty = 'medium';
 let orientation = 'w';
@@ -41,6 +45,7 @@ function restore() {
     const candidate = new Chess();
     if (data.pgn.trim()) candidate.loadPgn(data.pgn);
     game = candidate;
+    resigned = data.resigned === true;
     playerColor = data.playerColor;
     difficulty = data.difficulty;
     orientation = ['w','b'].includes(data.orientation) ? data.orientation : playerColor;
@@ -52,7 +57,7 @@ function restore() {
 }
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pgn: game.pgn(), playerColor, difficulty, orientation }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ pgn: game.pgn(), playerColor, difficulty, orientation, resigned }));
   } catch { storageAvailable = false; }
   $('save-status').textContent = storageAvailable ? 'Saved automatically on this device' : 'Device storage unavailable · Export to keep your game';
 }
@@ -64,8 +69,10 @@ function viewingGame() {
 }
 function positionPly() { return reviewPly === null ? history().length : reviewPly; }
 function colorName(color) { return color === 'w' ? 'White' : 'Black'; }
-function canMove() { return reviewPly === null && !busy && !game.isGameOver() && game.turn() === playerColor; }
+function isFinished() { return resigned || game.isGameOver(); }
+function canMove() { return reviewPly === null && !busy && !isFinished() && game.turn() === playerColor; }
 function statusText() {
+  if (resigned) return ['You resigned.', `${colorName(playerColor === 'w' ? 'b' : 'w')} wins by resignation.`];
   if (game.isCheckmate()) return [game.turn() === playerColor ? 'Checkmate.' : 'Checkmate.', `${colorName(game.turn() === 'w' ? 'b' : 'w')} wins by checkmate. Start a new game whenever you’re ready.`];
   if (game.isStalemate()) return ['Draw.', 'Draw by stalemate. There are no legal moves.'];
   if (game.isThreefoldRepetition()) return ['Draw.', 'Draw by threefold repetition.'];
@@ -147,24 +154,77 @@ function renderMoves() {
   if (reviewPly === 0) $('replay-label').textContent = 'Starting position';
   $('return-live').hidden = reviewPly === null;
 }
+async function reviewPerformance() {
+  const pgn = game.pgn();
+  const color = playerColor;
+  const key = color + ':' + game.history().join(' ');
+  if (reviewedGames.has(key)) return;
+  reviewedGames.add(key);
+  const snapshot = { pgn, playerColor: color, difficulty, resigned };
+  observeGame(history(), color, key);
+  const moves = history().filter(move => move.color === color);
+  if (game.getHeaders().SetUp === '1' || history().length < 8) {
+    performanceStatus = 'Not enough standard-game moves to estimate performance.';
+    return;
+  }
+  const sample = moves.length <= 12 ? moves : Array.from({ length: 12 }, (_, i) => moves[Math.floor(i * (moves.length - 1) / 11)]);
+  const losses = [];
+  const stillCurrent = () => color === playerColor && key === color + ':' + game.history().join(' ');
+  const update = text => { if (stillCurrent()) { performanceStatus = text; $('performance-status').textContent = text; } };
+  async function evaluate(fen) {
+    const position = new Chess(fen);
+    if (position.isCheckmate()) return position.turn() === 'w' ? -10000 : 10000;
+    if (position.isDraw()) return 0;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fen }), signal: controller.signal });
+      const result = await response.json();
+      if (!response.ok) throw new Error('Analysis unavailable');
+      if (Number.isFinite(result.mate)) return Math.sign(result.mate) * 10000;
+      if (!Number.isFinite(result.cp)) throw new Error('No evaluation');
+      return result.cp;
+    } finally { clearTimeout(timer); }
+  }
+  let complete = true;
+  try {
+    for (const [index, move] of sample.entries()) {
+      update(`Reviewing move quality ${index + 1}/${sample.length}…`);
+      const before = await evaluate(move.before);
+      const after = await evaluate(move.after);
+      losses.push(Math.max(0, Math.min(1000, (before - after) * (color === 'w' ? 1 : -1))));
+    }
+  } catch { complete = false; }
+  losses.sort((a, b) => a - b);
+  const analysis = losses.length ? {
+    meanLossCp: losses.reduce((sum, loss) => sum + loss, 0) / losses.length,
+    medianLossCp: (losses[Math.floor((losses.length - 1) / 2)] + losses[Math.floor(losses.length / 2)]) / 2,
+    samples: losses.length, totalMoves: moves.length,
+  } : undefined;
+  recordCompletedGame({ ...snapshot, analysis });
+  update(complete ? `Performance updated from ${losses.length} sampled moves. See Opponent for the change.` : `Analysis interrupted after ${losses.length} moves. Estimate uses the available evidence.`);
+  if (stillCurrent()) render();
+}
 function render() {
-  if (game.isGameOver()) recordCompletedGame({ pgn: game.pgn(), playerColor, difficulty });
+  if (isFinished()) void reviewPerformance();
   const [title, detail] = statusText();
   $('status').textContent = reviewPly !== null ? 'Reviewing position' : title;
   $('status-detail').textContent = reviewPly !== null ? 'You’re reviewing an earlier position. Return to live play to make your next move.' : detail;
-  $('game-label').textContent = reviewPly !== null ? 'GAME REVIEW' : game.isGameOver() ? 'GAME COMPLETE' : busy ? 'ENGINE THINKING' : 'GAME IN PROGRESS';
+  $('game-label').textContent = reviewPly !== null ? 'GAME REVIEW' : isFinished() ? 'GAME COMPLETE' : busy ? 'ENGINE THINKING' : 'GAME IN PROGRESS';
   $('turn-label').textContent = `${colorName(viewingGame().turn())} to move`;
   $('turn-dot').classList.toggle('black', viewingGame().turn() === 'b');
   $('move-number').textContent = `Move ${viewingGame().fen().split(' ')[5]}`;
-  $('level-tag').textContent = difficulty.toUpperCase();
-  $('session-level').textContent = difficulty[0].toUpperCase() + difficulty.slice(1);
+  $('level-tag').textContent = String(engineOptions().rating || 800);
+  $('session-level').textContent = `${engineOptions().rating || 800} · estimated`;
+  $('performance-status').textContent = performanceStatus;
   $('session-color').textContent = colorName(playerColor);
   $('player-detail').textContent = `${colorName(playerColor)} pieces · Your perspective`;
   $('opponent-detail').textContent = `${describePartner()} · ${colorName(playerColor === 'w' ? 'b' : 'w')} pieces`;
   $('engine-indicator').classList.toggle('thinking', busy);
   $('error').hidden = !engineError;
   $('error-text').textContent = engineError;
-  $('takeback').disabled = history().length === 0;
+  $('takeback').disabled = history().length === 0 || isFinished();
+  $('resign').disabled = isFinished() || history().length === 0;
   $('export').disabled = history().length === 0;
   renderBoard();
   renderMoves();
@@ -193,7 +253,7 @@ function chime() {
   } catch { /* Audio is an optional enhancement. */ }
 }
 async function askEngine() {
-  if (busy || game.isGameOver() || game.turn() === playerColor) return;
+  if (busy || isFinished() || game.turn() === playerColor) return;
   const currentGeneration = generation;
   const fen = game.fen();
   const controller = new AbortController();
@@ -205,7 +265,7 @@ async function askEngine() {
   let timedOut = false;
   const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 30000);
   try {
-    const response = await fetch('/api/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fen, difficulty: chooseDifficulty(difficulty), ...engineOptions() }), signal: controller.signal });
+    const response = await fetch('/api/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fen, difficulty: chooseDifficulty(difficulty), ...engineOptions(), ...learnedOptions(fen) }), signal: controller.signal });
     const result = await response.json();
     if (currentGeneration !== generation || game.fen() !== fen) return;
     if (!response.ok) throw new Error(result.error || 'The engine could not respond.');
@@ -291,6 +351,7 @@ $('promotion-dialog').addEventListener('cancel', () => { promotion = null; });
 $('new-game').addEventListener('click', () => {
   $('setup-form').elements.color.value = playerColor;
   $('setup-form').elements.difficulty.value = difficulty;
+  $('setup-form').elements.rating.value = engineOptions().rating;
   $('setup-dialog').showModal();
 });
 $('close-setup').addEventListener('click', () => $('setup-dialog').close());
@@ -300,8 +361,11 @@ $('setup-form').addEventListener('submit', (event) => {
   const data = new FormData(event.currentTarget);
   playerColor = data.get('color');
   difficulty = data.get('difficulty');
+  setPracticeRating(Number(data.get('rating')));
   orientation = playerColor;
   game = new Chess();
+  resigned = false;
+  performanceStatus = '';
   selected = null;
   reviewPly = null;
   promotion = null;
@@ -344,8 +408,22 @@ $('takeback').addEventListener('click', () => {
   void askEngine();
 });
 $('retry').addEventListener('click', () => { void askEngine(); });
+$('resign').addEventListener('click', () => {
+  if (!isFinished() && history().length) $('resign-dialog').showModal();
+});
+$('cancel-resign').addEventListener('click', () => $('resign-dialog').close());
+$('confirm-resign').addEventListener('click', () => {
+  $('resign-dialog').close();
+  if (isFinished()) return;
+  cancelEngine();
+  resigned = true;
+  selected = null;
+  reviewPly = null;
+  game.header('Result', playerColor === 'w' ? '0-1' : '1-0', 'Termination', 'resignation');
+  save(); render();
+});
 $('export').addEventListener('click', () => {
-  game.header('Event', 'Chess AI practice', 'White', playerColor === 'w' ? 'You' : `Chess AI (${difficulty})`, 'Black', playerColor === 'b' ? 'You' : `Chess AI (${difficulty})`, 'Result', game.isCheckmate() ? (game.turn() === 'w' ? '0-1' : '1-0') : game.isDraw() ? '1/2-1/2' : '*');
+  game.header('Event', 'Rookmate practice', 'White', playerColor === 'w' ? 'You' : `Rookmate (${engineOptions().rating || 800})`, 'Black', playerColor === 'b' ? 'You' : `Rookmate (${engineOptions().rating || 800})`, 'Result', resigned ? (playerColor === 'w' ? '0-1' : '1-0') : game.isCheckmate() ? (game.turn() === 'w' ? '0-1' : '1-0') : game.isDraw() ? '1/2-1/2' : '*');
   const url = URL.createObjectURL(new Blob([game.pgn() + '\n'], { type: 'application/x-chess-pgn' }));
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -368,6 +446,8 @@ export function startPracticePosition(fen, color) {
   const candidate = new Chess(fen);
   cancelEngine();
   game = candidate;
+  resigned = false;
+  performanceStatus = '';
   playerColor = color;
   orientation = color;
   selected = null;
