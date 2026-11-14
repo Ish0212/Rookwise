@@ -467,7 +467,7 @@ function updateView() {
     if (link.dataset.viewLink === view) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
-  document.title = `${view === 'training' ? 'Train' : view === 'partner' ? 'Opponent' : 'Play'} • ChessAI`;
+  document.title = `${view === 'training' ? 'Train' : view === 'partner' ? 'Opponent' : 'Play'} • Rookmate`;
 }
 window.addEventListener('hashchange', updateView);
 updateView();

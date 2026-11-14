@@ -1,14 +1,15 @@
 import { Chess } from '/vendor/chess.js';
 import { pieceSvg, startPracticePosition } from './app.js';
+import { observeGame, flushMemory } from './memory.js';
 
 const root = document.createElement('section');
 root.className = 'training-room';
 root.id = 'training';
 root.innerHTML = `<div class="training-heading"><div><p class="eyebrow">GAME REVIEW</p><h2>Train with your games</h2><p>Import games, review mistakes, and practice the positions you missed.</p></div></div>
-<div class="training-grid"><section class="training-panel"><h3>Import games</h3><p>Import PGN from Chess.com, Lichess, or any chess app. You can train here without playing a new game.</p><div class="training-links">Export your games from <a href="https://www.chess.com/games/archive" target="_blank" rel="noopener noreferrer">Chess.com â†—</a> or <a href="https://lichess.org/games/export" target="_blank" rel="noopener noreferrer">Lichess â†—</a>, then upload or paste the PGN.</div><label for="history-provider">Import public account history</label><div class="training-actions"><select id="history-provider" aria-label="Chess platform"><option value="lichess">Lichess</option><option value="chesscom">Chess.com</option></select><input id="history-username" class="history-username" placeholder="Your username" aria-label="Chess account username" maxlength="160"><button id="import-history" class="button secondary">Import history</button></div><div class="import-options"><label for="history-count">Games to import<select id="history-count"><option value="10">10 games</option><option value="100">100 games</option><option value="1000">1,000 games</option><option value="5000">5,000 games</option></select></label><label for="history-range">Date range<select id="history-range"><option value="all">All dates</option><option value="7">Last week</option><option value="14">Last two weeks</option></select></label></div><div class="training-actions"><button id="cancel-history" class="button secondary" hidden>Stop import</button><button id="resume-history" class="button secondary" hidden>Resume import</button></div><progress id="history-progress" value="0" max="10" hidden aria-label="Game import progress"></progress><p id="history-storage" class="training-note">Imports run in small batches. Public usernames and profile URLs are accepted; no password needed. Large libraries are saved in this browserâ€™s database.</p><label for="pgn-input">Or paste PGN</label><textarea id="pgn-input" placeholder='[White "You"]&#10;[Black "Opponent"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *' spellcheck="false"></textarea><label for="pgn-file">Or choose a .pgn file</label><input class="file-picker" id="pgn-file" type="file" accept=".pgn,.txt,application/x-chess-pgn"><div class="training-actions"><button class="button secondary" id="import-pgn">Import games</button></div><div id="training-selectors" hidden><label for="training-game">Choose a game</label><select id="training-game"></select><label for="training-side">Which side were you?</label><select id="training-side"><option value="w">White</option><option value="b">Black</option></select><div class="training-actions"><button id="analyze-game" class="button primary">Analyze game</button><button id="cancel-analysis" class="button secondary" hidden>Stop</button></div><p class="training-note">Reviews up to 12 of your most recent moves in this game. Short engine searches can miss tactics; these are practice suggestions, not a full game review.</p></div><p id="training-message" class="training-message" role="status" aria-live="polite">PGN and positions are sent to your local server for parsing and engine review. Training results are saved in this browser.</p></section>
-<section class="training-panel"><h3>Review summary</h3><p id="scout-intro">A report grounded in your moves, with positions you can revisit.</p><div id="scout-stats"><div class="scout-stat"><span>Reviewed games</span><strong>0</strong></div><div class="scout-stat"><span>Practice moments</span><strong>â€”</strong></div></div><div id="scout-evidence" class="training-evidence">Import a game and review your side to begin. Reports use engine comparisons of your actual moves.</div><p class="training-note">This report describes the reviewed sample. A small sample cannot establish your overall skill or a lasting playing style.</p></section>
-<section class="training-panel" id="puzzle-panel"><h3>Your puzzles</h3><p id="puzzle-description">Personal puzzles appear here when a reviewed move gives away at least a pawn of engine evaluation. Find the engineâ€™s stronger move from your original position.</p><div id="puzzle-content" hidden><div class="puzzle-nav"><button id="puzzle-previous" class="icon-button" aria-label="Previous puzzle">â€¹</button><span id="puzzle-count"></span><button id="puzzle-next" class="icon-button" aria-label="Next puzzle">â€º</button></div><div class="puzzle-board-wrap"><div id="puzzle-board" class="puzzle-board" role="group" aria-label="Personal puzzle board"></div></div><p id="puzzle-feedback" class="training-message" aria-live="polite"></p><div class="training-actions"><button id="puzzle-reset" class="button secondary">Try again</button><button id="puzzle-hint" class="button secondary">Show starting piece</button><button id="puzzle-answer" class="button secondary">Reveal move</button></div><div id="puzzle-evidence" class="training-evidence" hidden></div><div class="training-actions"><button id="run-it-back" class="button primary">Run it back â†’</button></div><p class="training-note">Run it back replaces your current saved game with this position. Play it out against the engine at your current difficulty.</p></div></section>
-<section class="training-panel"><h3>Practice opponent</h3><p>Practice from the positions you actually reached. Your reviewed games provide the evidence, and your mistakes become material for your next session.</p><div class="scout-stat"><span>Opponent today</span><strong>Stockfish Â· adjustable difficulty</strong></div><div class="scout-stat"><span>Personal training today</span><strong>Imported games, puzzles & rematches</strong></div><div class="scout-stat"><span>Personal calibration</span><strong>Based on completed game results</strong></div><div class="scout-stat"><span>Past-self practice</span><strong>Replay saved opponent settings</strong></div><p class="training-note">Configure your personal partner below. Result-based calibration adjusts difficulty; rival styles adjust engine move selection. Past-self practice reuses saved settings rather than recreating your historical moves or a learned model of you.</p></section></div>`;
+<div class="training-grid"><section class="training-panel"><h3>Import games</h3><p>Import PGN from Chess.com, Lichess, or any chess app. You can train here without playing a new game.</p><div class="training-links">Export your games from <a href="https://www.chess.com/games/archive" target="_blank" rel="noopener noreferrer">Chess.com ↗</a> or <a href="https://lichess.org/games/export" target="_blank" rel="noopener noreferrer">Lichess ↗</a>, then upload or paste the PGN.</div><label for="history-provider">Import public account history</label><div class="training-actions"><select id="history-provider" aria-label="Chess platform"><option value="lichess">Lichess</option><option value="chesscom">Chess.com</option></select><input id="history-username" class="history-username" placeholder="Your username" aria-label="Chess account username" maxlength="160"><button id="import-history" class="button secondary">Import history</button></div><div class="import-options"><label for="history-count">Games to import<select id="history-count"><option value="10">10 games</option><option value="100">100 games</option><option value="1000">1,000 games</option><option value="5000">5,000 games</option></select></label><label for="history-range">Date range<select id="history-range"><option value="all">All dates</option><option value="7">Last week</option><option value="14">Last two weeks</option></select></label></div><div class="training-actions"><button id="cancel-history" class="button secondary" hidden>Stop import</button><button id="resume-history" class="button secondary" hidden>Resume import</button></div><progress id="history-progress" value="0" max="10" hidden aria-label="Game import progress"></progress><p id="history-storage" class="training-note">Imports run in small batches. Public usernames and profile URLs are accepted; no password needed. Large libraries are saved in this browser’s database.</p><label for="pgn-input">Or paste PGN</label><textarea id="pgn-input" placeholder='[White "You"]&#10;[Black "Opponent"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *' spellcheck="false"></textarea><label for="pgn-file">Or choose a .pgn file</label><input class="file-picker" id="pgn-file" type="file" accept=".pgn,.txt,application/x-chess-pgn"><div class="training-actions"><button class="button secondary" id="import-pgn">Import games</button></div><div id="training-selectors" hidden><label for="training-game">Choose a game</label><select id="training-game"></select><label for="training-side">Which side were you?</label><select id="training-side"><option value="w">White</option><option value="b">Black</option></select><div class="training-actions"><button id="analyze-game" class="button primary">Analyze game</button><button id="cancel-analysis" class="button secondary" hidden>Stop</button></div><p class="training-note">Reviews up to 12 of your most recent moves in this game. Short engine searches can miss tactics; these are practice suggestions, not a full game review.</p></div><p id="training-message" class="training-message" role="status" aria-live="polite">PGN and positions are sent to your local server for parsing and engine review. Training results are saved in this browser.</p></section>
+<section class="training-panel"><h3>Review summary</h3><p id="scout-intro">A report grounded in your moves, with positions you can revisit.</p><div id="scout-stats"><div class="scout-stat"><span>Reviewed games</span><strong>0</strong></div><div class="scout-stat"><span>Practice moments</span><strong>—</strong></div></div><div id="scout-evidence" class="training-evidence">Import a game and review your side to begin. Reports use engine comparisons of your actual moves.</div><p class="training-note">This report describes the reviewed sample. A small sample cannot establish your overall skill or a lasting playing style.</p></section>
+<section class="training-panel" id="puzzle-panel"><h3>Your puzzles</h3><p id="puzzle-description">Personal puzzles appear here when a reviewed move gives away at least a pawn of engine evaluation. Find the engine’s stronger move from your original position.</p><div id="puzzle-content" hidden><div class="puzzle-nav"><button id="puzzle-previous" class="icon-button" aria-label="Previous puzzle">‹</button><span id="puzzle-count"></span><button id="puzzle-next" class="icon-button" aria-label="Next puzzle">›</button></div><div class="puzzle-board-wrap"><div id="puzzle-board" class="puzzle-board" role="group" aria-label="Personal puzzle board"></div></div><p id="puzzle-feedback" class="training-message" aria-live="polite"></p><div class="training-actions"><button id="puzzle-reset" class="button secondary">Try again</button><button id="puzzle-hint" class="button secondary">Show starting piece</button><button id="puzzle-answer" class="button secondary">Reveal move</button></div><div id="puzzle-evidence" class="training-evidence" hidden></div><div class="training-actions"><button id="run-it-back" class="button primary">Run it back →</button></div><p class="training-note">Run it back replaces your current saved game with this position. Play it out against the engine at your current difficulty.</p></div></section>
+<section class="training-panel"><h3>Practice opponent</h3><p>Practice from the positions you actually reached. Your reviewed games provide the evidence, and your mistakes become material for your next session.</p><div class="scout-stat"><span>Opponent today</span><strong>Custom engine · estimated level</strong></div><div class="scout-stat"><span>Personal training today</span><strong>Imported games, puzzles & rematches</strong></div><div class="scout-stat"><span>Personal calibration</span><strong>Based on completed game results</strong></div><div class="scout-stat"><span>Past-self practice</span><strong>Replay saved opponent settings</strong></div><p class="training-note">Open Opponent to configure your practice partner. Move-quality calibration adjusts the level. Observed move frequencies and habits influence the custom opponent. Previous settings replay is not a faithful imitation of your past play.</p></section></div>`;
 document.querySelector('footer').before(root);
 const $ = (id) => document.getElementById(id);
 const KEY = 'chessai.training.v1';
@@ -63,7 +64,7 @@ async function storeLibrary(version) {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
-    $('history-storage').textContent = `${games.length.toLocaleString()} games saved in this browserâ€™s database. Imports run sequentially; stop and resume whenever needed.`;
+    $('history-storage').textContent = `${games.length.toLocaleString()} games saved in this browser’s database. Imports run sequentially; stop and resume whenever needed.`;
   } catch {
     $('history-storage').textContent = games.length > 20 ? 'Browser database unavailable. This session has the full library; only the first 20 games can be restored. Keep your original PGN or reimport later.' : 'Saved on this device. Browser database unavailable; up to 20 games can be restored from the fallback save.';
   }
@@ -82,7 +83,7 @@ function showGames() {
   games.forEach((game, index) => {
     const option = document.createElement('option');
     option.value = String(index);
-    option.textContent = `${index + 1}. ${game.headers?.White || 'White'} vs ${game.headers?.Black || 'Black'} Â· ${game.result || '*'}`;
+    option.textContent = `${index + 1}. ${game.headers?.White || 'White'} vs ${game.headers?.Black || 'Black'} · ${game.result || '*'}`;
     $('training-game').append(option);
   });
 }
@@ -148,11 +149,15 @@ async function importHistory(resume) {
       if (importState.fresh) { games=[]; importState.fresh=false; }
       const seen = new Set(games.map(gameIdentity));
       for (const raw of data.games) {
+        const username = String(data.username || '').toLowerCase();
+        const side = raw.headers?.White?.toLowerCase() === username ? 'w' : raw.headers?.Black?.toLowerCase() === username ? 'b' : null;
+        if (side) observeGame(raw.moves, side, `${side}:${raw.moves.map(move => move.san).join(' ')}`, false);
         const compact = compactGame(raw);
         const identity = gameIdentity(compact);
         if (!seen.has(identity) && games.length < importState.target) { games.push(compact); seen.add(identity); }
       }
       importState.username = data.username || importState.username;
+      flushMemory();
       importState.cursor = data.nextCursor || null;
       importState.done = data.done === true || !data.nextCursor || games.length >= importState.target;
       showGames();
@@ -191,7 +196,7 @@ $('import-pgn').addEventListener('click', async () => {
   if (historyController || analysisController) { message('Stop the active import or review first.'); return; }
   $('import-pgn').disabled = true;
   $('import-history').disabled = true;
-  message('Reading your gamesâ€¦');
+  message('Reading your games…');
   try {
     const data = await api('/api/import', {pgn});
     if (!Array.isArray(data.games) || !data.games.length) throw new Error('No games were found in that PGN.');
@@ -202,7 +207,8 @@ $('import-pgn').addEventListener('click', async () => {
   } catch(error) { message(`Could not import: ${error.message}`); }
   finally { $('import-pgn').disabled = false; $('import-history').disabled = false; }
 });
-function score(result) {
+function score(result, fen) {
+  if (result.mate === 0) return new Chess(fen).turn() === 'w' ? -10000 : 10000;
   if (result.mate !== null && result.mate !== undefined) return result.mate > 0 ? 10000 - result.mate * 10 : -10000 - result.mate * 10;
   if (typeof result.cp === 'number') return result.cp;
   return 0;
@@ -215,6 +221,7 @@ $('analyze-game').addEventListener('click', async () => {
   catch { message('This saved game could not be restored. Import its PGN again.'); return; }
   if (!imported) return;
   const side = $('training-side').value;
+  observeGame(imported.moves, side, `${side}:${imported.moves.map(move => move.san).join(' ')}`);
   const candidates = imported.moves.filter(move => move.color === side).slice(-12);
   if (!candidates.length) { message('There are no moves for that side in this game. Choose another side or game.'); return; }
   const fingerprint = imported.moves.map(move=>move.uci).join('') + side + imported.initialFen;
@@ -230,11 +237,11 @@ $('analyze-game').addEventListener('click', async () => {
   try {
     for (let i=0; i<candidates.length; i++) {
       const move = candidates[i];
-      message(`Reviewing move ${i+1} of ${candidates.length}â€¦ Comparing your move with the engineâ€™s suggestion.`);
+      message(`Reviewing move ${i+1} of ${candidates.length}… Comparing your move with the engine’s suggestion.`);
       const before = await api('/api/analyze', {fen:move.before}, controller.signal);
       const after = await api('/api/analyze', {fen:move.fen}, controller.signal);
       if (generation !== analysisGeneration) return;
-      const loss = Math.round((score(before)-score(after))*(side==='w'?1:-1));
+      const loss = Math.round((score(before,move.before)-score(after,move.fen))*(side==='w'?1:-1));
       if (loss >= 100 && before.move && before.move !== move.uci) {
         const check = new Chess(move.before);
         let best;
@@ -322,7 +329,7 @@ function solve(from,to,promotion) {
   solved=true;selected=null;
   puzzle.solvedCount = (puzzle.solvedCount || 0) + 1;
   persist();
-  $('puzzle-count').textContent = `Personal puzzle ${puzzleIndex+1} / ${puzzles.length} Â· Solved ${puzzle.solvedCount}Ã— in ${puzzle.attempts} attempts`;
+  $('puzzle-count').textContent = `Personal puzzle ${puzzleIndex+1} / ${puzzles.length} · Solved ${puzzle.solvedCount}Ã— in ${puzzle.attempts} attempts`;
   $('puzzle-feedback').textContent=`Found it: ${puzzle.bestSan}. Now try playing out the position with Run it back.`;
   evidence();drawPuzzle();
 }

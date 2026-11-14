@@ -65,6 +65,61 @@ async function browser(t, saved, extraStorage = {}) {
 function play(app, from, to) { app.click(`[data-square="${from}"]`); app.click(`[data-square="${to}"]`); }
 function savedChess(app) { const chess = new Chess(); chess.loadPgn(app.saved().pgn); return chess; }
 
+test('public history button sends count/date controls, follows pages, and learns only matching player moves', async t => {
+  const app = await browser(t);
+  const { importPgn } = require('../server/pgn-import');
+  const fixture = importPgn('[Event "Import"]\n[White "Alice"]\n[Black "Bob"]\n\n1. e4 e5 *')[0];
+  app.$('#history-provider').value = 'chesscom';
+  app.$('#history-username').value = 'https://www.chess.com/member/Alice';
+  app.$('#history-count').value = '1000';
+  app.$('#history-range').value = '7';
+  app.click('#import-history');
+  assert.equal(app.requests[0].url, '/api/import/username');
+  assert.equal(app.requests[0].body.limit, 100);
+  assert.ok(Math.abs(app.requests[0].body.since - (Date.now() - 7 * 86400000)) < 2000);
+  app.requests[0].respond({games:[{...fixture,sourceId:'one'}],username:'alice',nextCursor:'page2',done:false});
+  for(let i=0;i<50 && app.requests.length<2;i++) await new Promise(resolve=>setTimeout(resolve,2));
+  assert.equal(app.requests[1].body.cursor, 'page2');
+  app.requests[1].respond({games:[{...fixture,sourceId:'two'}],username:'alice',nextCursor:null,done:true});
+  for(let i=0;i<50 && app.$('#import-history').disabled;i++) await new Promise(resolve=>setTimeout(resolve,2));
+  assert.equal(app.$('#training-game').options.length, 2);
+  assert.match(app.$('#training-message').textContent, /Imported 2 games/);
+  const memory = JSON.parse(app.window.localStorage.getItem('rookmate.memory.v1'));
+  assert.equal(memory.moves, 1); // Identical game duplicated by provider is learned once.
+  assert.equal(Object.values(memory.positions)[0].e2e4, 1);
+});
+
+test('a cancelled public import keeps its cursor and can resume', async t => {
+  const app = await browser(t);
+  app.$('#history-username').value = 'Alice';
+  app.click('#import-history');
+  app.click('#cancel-history');
+  assert.equal(app.requests[0].options.signal.aborted, true);
+  app.requests[0].reject(new app.window.DOMException('Stopped','AbortError'));
+  await tick();
+  assert.equal(app.$('#resume-history').hidden, false);
+  app.click('#resume-history');
+  app.requests[1].respond({games:[],username:'alice',done:true,nextCursor:null});
+  for(let i=0;i<50 && app.$('#import-history').disabled;i++) await new Promise(resolve=>setTimeout(resolve,2));
+  assert.equal(app.$('#resume-history').hidden, true);
+  assert.match(app.$('#training-message').textContent, /No finished standard games/);
+});
+
+test('postgame analysis raises the practice estimate for strong moves even after resignation', async t => {
+  const app = await browser(t, session(['e4','e5','Nf3','Nc6','Bc4','Bc5','d3','d6']));
+  app.click('#resign'); app.click('#confirm-resign');
+  for(let i=0;i<8;i++) {
+    assert.equal(app.requests[i].url, '/api/analyze');
+    app.requests[i].respond({cp:i%2 ? 20 : 30,mate:null});
+    await tick();
+  }
+  const profile = JSON.parse(app.window.localStorage.getItem('chessai.partner.v1'));
+  assert.ok(profile.rating > 800);
+  assert.equal(profile.results[0].score, 0);
+  assert.match(app.$('#performance-status').textContent, /Performance updated/);
+  assert.equal(app.requests.filter(request=>request.url==='/api/move').length, 0);
+});
+
 test('legal selection, illegal moves, engine reply, replay, and takeback work together', async t => {
   const app = await browser(t);
   assert.equal(app.window.document.querySelectorAll('[data-square]').length, 64);

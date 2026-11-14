@@ -7,9 +7,12 @@ try {
 } catch { /* Optional memory must not block play. */ }
 const positionKey = fen => fen.split(' ').slice(0, 4).join(' ');
 function save() { try { localStorage.setItem(KEY, JSON.stringify(memory)); } catch { /* Play remains available if storage is full. */ } }
-export function observeGame(moves, color, identity) {
-  if (!Array.isArray(moves) || !['w','b'].includes(color) || memory.games.includes(identity)) return;
-  memory.games.push(identity); memory.games = memory.games.slice(-5000);
+export function observeGame(moves, color, identity, persist = true) {
+  let hash = 14695981039346656037n;
+  for (const char of String(identity)) hash = BigInt.asUintN(64, (hash ^ BigInt(char.codePointAt(0))) * 1099511628211n);
+  const id = hash.toString(16);
+  if (!Array.isArray(moves) || !['w','b'].includes(color) || memory.games.includes(id)) return;
+  memory.games.push(id); memory.games = memory.games.slice(-5000);
   for (const move of moves) {
     if (move.color !== color || typeof move.before !== 'string') continue;
     const uci = move.uci || move.from + move.to + (move.promotion || '');
@@ -25,8 +28,9 @@ export function observeGame(moves, color, identity) {
   // Keep a small local repertoire so requests and browser storage stay bounded.
   const keys = Object.keys(memory.positions);
   for (const key of keys.slice(0, Math.max(0, keys.length - 2000))) delete memory.positions[key];
-  save();
+  if (persist) save();
 }
+export const flushMemory = save;
 export function learnedOptions(fen) {
   const preferences = memory.positions[positionKey(fen)] || {};
   if (memory.moves < 20) return { preferences };
