@@ -4,11 +4,11 @@ import { pieceSvg, startPracticePosition } from './app.js';
 const root = document.createElement('section');
 root.className = 'training-room';
 root.id = 'training';
-root.innerHTML = `<div class="training-heading"><div><p class="eyebrow">MAKE YOUR GAMES YOUR TEACHER</p><h2>Your personal training room.</h2><p>Bring your history. Find the moments that mattered. Play them again.</p></div></div>
-<div class="training-grid"><section class="training-panel"><h3>Bring a game</h3><p>Import PGN from Chess.com, Lichess, or any chess app. You can train here without playing a new game.</p><div class="training-links">Export your games from <a href="https://www.chess.com/games/archive" target="_blank" rel="noopener noreferrer">Chess.com ↗</a> or <a href="https://lichess.org/games/export" target="_blank" rel="noopener noreferrer">Lichess ↗</a>, then upload or paste the PGN.</div><label for="history-provider">Import public account history</label><div class="training-actions"><select id="history-provider" aria-label="Chess platform"><option value="lichess">Lichess</option><option value="chesscom">Chess.com</option></select><input id="history-username" class="history-username" placeholder="Your username" aria-label="Chess account username" maxlength="40"><button id="import-history" class="button secondary">Import history</button></div><p class="training-note">Imports up to 10 recent public games. No password or account access required.</p><label for="pgn-input">Or paste PGN</label><textarea id="pgn-input" placeholder='[White "You"]&#10;[Black "Opponent"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *' spellcheck="false"></textarea><label for="pgn-file">Or choose a .pgn file</label><input class="file-picker" id="pgn-file" type="file" accept=".pgn,.txt,application/x-chess-pgn"><div class="training-actions"><button class="button secondary" id="import-pgn">Import games</button></div><div id="training-selectors" hidden><label for="training-game">Choose a game</label><select id="training-game"></select><label for="training-side">Which side were you?</label><select id="training-side"><option value="w">White</option><option value="b">Black</option></select><div class="training-actions"><button id="analyze-game" class="button primary">Find my practice moments →</button><button id="cancel-analysis" class="button secondary" hidden>Stop</button></div><p class="training-note">Reviews up to 12 of your most recent moves in this game. Short engine searches can miss tactics; these are practice suggestions, not a full game review.</p></div><p id="training-message" class="training-message" role="status" aria-live="polite">PGN and positions are sent to your local server for parsing and engine review. Training results are saved in this browser.</p></section>
-<section class="training-panel"><h3>Your scouting report</h3><p id="scout-intro">A report grounded in your moves, with positions you can revisit.</p><div id="scout-stats"><div class="scout-stat"><span>Reviewed games</span><strong>0</strong></div><div class="scout-stat"><span>Practice moments</span><strong>—</strong></div></div><div id="scout-evidence" class="training-evidence">Import a game and review your side to begin. Reports use engine comparisons of your actual moves.</div><p class="training-note">This report describes the reviewed sample. A small sample cannot establish your overall skill or a lasting playing style.</p></section>
-<section class="training-panel" id="puzzle-panel"><h3>From your game to your next breakthrough.</h3><p id="puzzle-description">Personal puzzles appear here when a reviewed move gives away at least a pawn of engine evaluation. Find the engine’s stronger move from your original position.</p><div id="puzzle-content" hidden><div class="puzzle-nav"><button id="puzzle-previous" class="icon-button" aria-label="Previous puzzle">‹</button><span id="puzzle-count"></span><button id="puzzle-next" class="icon-button" aria-label="Next puzzle">›</button></div><div class="puzzle-board-wrap"><div id="puzzle-board" class="puzzle-board" role="group" aria-label="Personal puzzle board"></div></div><p id="puzzle-feedback" class="training-message" aria-live="polite"></p><div class="training-actions"><button id="puzzle-reset" class="button secondary">Try again</button><button id="puzzle-hint" class="button secondary">Show starting piece</button><button id="puzzle-answer" class="button secondary">Reveal move</button></div><div id="puzzle-evidence" class="training-evidence" hidden></div><div class="training-actions"><button id="run-it-back" class="button primary">Run it back →</button></div><p class="training-note">Run it back replaces your current saved game with this position. Play it out against the engine at your current difficulty.</p></div></section>
-<section class="training-panel"><h3>A rival you can study.</h3><p>Practice from the positions you actually reached. Your reviewed games provide the evidence, and your mistakes become material for your next session.</p><div class="scout-stat"><span>Opponent today</span><strong>Stockfish · adjustable difficulty</strong></div><div class="scout-stat"><span>Personal training today</span><strong>Imported games, puzzles & rematches</strong></div><div class="scout-stat"><span>Personal calibration</span><strong>Based on completed game results</strong></div><div class="scout-stat"><span>Past-self practice</span><strong>Replay saved opponent settings</strong></div><p class="training-note">Configure your personal partner below. Result-based calibration adjusts difficulty; rival styles adjust engine move selection. Past-self practice reuses saved settings rather than recreating your historical moves or a learned model of you.</p></section></div>`;
+root.innerHTML = `<div class="training-heading"><div><p class="eyebrow">GAME REVIEW</p><h2>Train with your games</h2><p>Import games, review mistakes, and practice the positions you missed.</p></div></div>
+<div class="training-grid"><section class="training-panel"><h3>Import games</h3><p>Import PGN from Chess.com, Lichess, or any chess app. You can train here without playing a new game.</p><div class="training-links">Export your games from <a href="https://www.chess.com/games/archive" target="_blank" rel="noopener noreferrer">Chess.com â†—</a> or <a href="https://lichess.org/games/export" target="_blank" rel="noopener noreferrer">Lichess â†—</a>, then upload or paste the PGN.</div><label for="history-provider">Import public account history</label><div class="training-actions"><select id="history-provider" aria-label="Chess platform"><option value="lichess">Lichess</option><option value="chesscom">Chess.com</option></select><input id="history-username" class="history-username" placeholder="Your username" aria-label="Chess account username" maxlength="160"><button id="import-history" class="button secondary">Import history</button></div><div class="import-options"><label for="history-count">Games to import<select id="history-count"><option value="10">10 games</option><option value="100">100 games</option><option value="1000">1,000 games</option><option value="5000">5,000 games</option></select></label><label for="history-range">Date range<select id="history-range"><option value="all">All dates</option><option value="7">Last week</option><option value="14">Last two weeks</option></select></label></div><div class="training-actions"><button id="cancel-history" class="button secondary" hidden>Stop import</button><button id="resume-history" class="button secondary" hidden>Resume import</button></div><progress id="history-progress" value="0" max="10" hidden aria-label="Game import progress"></progress><p id="history-storage" class="training-note">Imports run in small batches. Public usernames and profile URLs are accepted; no password needed. Large libraries are saved in this browserâ€™s database.</p><label for="pgn-input">Or paste PGN</label><textarea id="pgn-input" placeholder='[White "You"]&#10;[Black "Opponent"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *' spellcheck="false"></textarea><label for="pgn-file">Or choose a .pgn file</label><input class="file-picker" id="pgn-file" type="file" accept=".pgn,.txt,application/x-chess-pgn"><div class="training-actions"><button class="button secondary" id="import-pgn">Import games</button></div><div id="training-selectors" hidden><label for="training-game">Choose a game</label><select id="training-game"></select><label for="training-side">Which side were you?</label><select id="training-side"><option value="w">White</option><option value="b">Black</option></select><div class="training-actions"><button id="analyze-game" class="button primary">Analyze game</button><button id="cancel-analysis" class="button secondary" hidden>Stop</button></div><p class="training-note">Reviews up to 12 of your most recent moves in this game. Short engine searches can miss tactics; these are practice suggestions, not a full game review.</p></div><p id="training-message" class="training-message" role="status" aria-live="polite">PGN and positions are sent to your local server for parsing and engine review. Training results are saved in this browser.</p></section>
+<section class="training-panel"><h3>Review summary</h3><p id="scout-intro">A report grounded in your moves, with positions you can revisit.</p><div id="scout-stats"><div class="scout-stat"><span>Reviewed games</span><strong>0</strong></div><div class="scout-stat"><span>Practice moments</span><strong>â€”</strong></div></div><div id="scout-evidence" class="training-evidence">Import a game and review your side to begin. Reports use engine comparisons of your actual moves.</div><p class="training-note">This report describes the reviewed sample. A small sample cannot establish your overall skill or a lasting playing style.</p></section>
+<section class="training-panel" id="puzzle-panel"><h3>Your puzzles</h3><p id="puzzle-description">Personal puzzles appear here when a reviewed move gives away at least a pawn of engine evaluation. Find the engineâ€™s stronger move from your original position.</p><div id="puzzle-content" hidden><div class="puzzle-nav"><button id="puzzle-previous" class="icon-button" aria-label="Previous puzzle">â€¹</button><span id="puzzle-count"></span><button id="puzzle-next" class="icon-button" aria-label="Next puzzle">â€º</button></div><div class="puzzle-board-wrap"><div id="puzzle-board" class="puzzle-board" role="group" aria-label="Personal puzzle board"></div></div><p id="puzzle-feedback" class="training-message" aria-live="polite"></p><div class="training-actions"><button id="puzzle-reset" class="button secondary">Try again</button><button id="puzzle-hint" class="button secondary">Show starting piece</button><button id="puzzle-answer" class="button secondary">Reveal move</button></div><div id="puzzle-evidence" class="training-evidence" hidden></div><div class="training-actions"><button id="run-it-back" class="button primary">Run it back â†’</button></div><p class="training-note">Run it back replaces your current saved game with this position. Play it out against the engine at your current difficulty.</p></div></section>
+<section class="training-panel"><h3>Practice opponent</h3><p>Practice from the positions you actually reached. Your reviewed games provide the evidence, and your mistakes become material for your next session.</p><div class="scout-stat"><span>Opponent today</span><strong>Stockfish Â· adjustable difficulty</strong></div><div class="scout-stat"><span>Personal training today</span><strong>Imported games, puzzles & rematches</strong></div><div class="scout-stat"><span>Personal calibration</span><strong>Based on completed game results</strong></div><div class="scout-stat"><span>Past-self practice</span><strong>Replay saved opponent settings</strong></div><p class="training-note">Configure your personal partner below. Result-based calibration adjusts difficulty; rival styles adjust engine move selection. Past-self practice reuses saved settings rather than recreating your historical moves or a learned model of you.</p></section></div>`;
 document.querySelector('footer').before(root);
 const $ = (id) => document.getElementById(id);
 const KEY = 'chessai.training.v1';
@@ -22,10 +22,59 @@ let solved = false;
 let analysisController = null;
 let analysisGeneration = 0;
 let puzzlePromotion = null;
+let historyController = null;
+let importState = null;
+let persistenceVersion = 0;
+let archiveDatabase;
+function compactGame(game) {
+  if (Array.isArray(game.uci)) return game;
+  return { headers:game.headers, result:game.result, initialFen:game.initialFen, finalFen:game.finalFen, sourceId:game.sourceId, playedAt:game.playedAt, uci:(game.moves || []).map(move => move.uci) };
+}
+function expandGame(game) {
+  if (Array.isArray(game.moves)) return game;
+  const chess = new Chess(game.initialFen);
+  const moves = (game.uci || []).map(uci => {
+    const before = chess.fen();
+    const move = chess.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});
+    return {uci,san:move.san,color:move.color,before,fen:chess.fen()};
+  });
+  return {...game,moves};
+}
+function database() {
+  if (archiveDatabase) return archiveDatabase;
+  archiveDatabase = new Promise((resolve,reject) => {
+    if (!globalThis.indexedDB) { reject(new Error('Browser database unavailable')); return; }
+    const request = indexedDB.open('chessai-training', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('library');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('Database upgrade blocked by another tab'));
+  });
+  return archiveDatabase;
+}
+async function storeLibrary(version) {
+  try {
+    const db = await database();
+    if (version !== persistenceVersion) return;
+    await new Promise((resolve,reject) => {
+      const tx = db.transaction('library','readwrite');
+      tx.objectStore('library').put({games,importState},'current');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    $('history-storage').textContent = `${games.length.toLocaleString()} games saved in this browserâ€™s database. Imports run sequentially; stop and resume whenever needed.`;
+  } catch {
+    $('history-storage').textContent = games.length > 20 ? 'Browser database unavailable. This session has the full library; only the first 20 games can be restored. Keep your original PGN or reimport later.' : 'Saved on this device. Browser database unavailable; up to 20 games can be restored from the fallback save.';
+  }
+}
+
 function message(text) { $('training-message').textContent = text; }
 function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify({ games, reports: reports.slice(-30), puzzles: puzzles.slice(-50) })); }
-  catch { message('Training works, but browser storage is full or unavailable. Keep your original PGN file.'); }
+  persistenceVersion++;
+  try { localStorage.setItem(KEY, JSON.stringify({ games:games.slice(0,20).map(compactGame), reports: reports.slice(-30), puzzles: puzzles.slice(-50), importState:games.length <= 20 ? importState : null })); }
+  catch { $('history-storage').textContent = 'Device storage is full or unavailable. Keep your original PGN file.'; }
+  void storeLibrary(persistenceVersion);
 }
 function showGames() {
   $('training-selectors').hidden = games.length === 0;
@@ -33,7 +82,7 @@ function showGames() {
   games.forEach((game, index) => {
     const option = document.createElement('option');
     option.value = String(index);
-    option.textContent = `${index + 1}. ${game.headers?.White || 'White'} vs ${game.headers?.Black || 'Black'} · ${game.result || '*'}`;
+    option.textContent = `${index + 1}. ${game.headers?.White || 'White'} vs ${game.headers?.Black || 'Black'} Â· ${game.result || '*'}`;
     $('training-game').append(option);
   });
 }
@@ -59,6 +108,75 @@ async function api(path, body, signal) {
   if (!response.ok) throw new Error(data.error || 'The server could not complete this request.');
   return data;
 }
+function gameIdentity(game) {
+  return game.sourceId || JSON.stringify([game.headers?.Site,game.headers?.White,game.headers?.Black,game.headers?.UTCDate || game.headers?.Date,game.uci]);
+}
+function historyBusy(busy) {
+  for (const id of ['import-history','import-pgn','analyze-game','history-provider','history-username','history-count','history-range']) $(id).disabled = busy;
+  $('cancel-history').hidden = !busy;
+  $('resume-history').hidden = busy || !importState || importState.done;
+}
+function updateImportProgress() {
+  if (!importState) return;
+  $('history-progress').hidden = false;
+  $('history-progress').max = importState.target;
+  $('history-progress').value = games.length;
+}
+async function importHistory(resume) {
+  if (historyController || analysisController) { message('Stop the active import or review first.'); return; }
+  if (!resume) {
+    const username = $('history-username').value.trim();
+    if (!username) { message('Enter your username or public profile URL first.'); return; }
+    const days = $('history-range').value;
+    importState = {provider:$('history-provider').value,username,target:Number($('history-count').value),since:days === 'all' ? null : Date.now()-Number(days)*86400000,cursor:null,done:false,fresh:true};
+  }
+  if (!importState || importState.done) return;
+  const controller = new AbortController();
+  historyController = controller;
+  historyBusy(true);
+  updateImportProgress();
+  try {
+    let batches = 0;
+    while (!importState.done && (importState.fresh || games.length < importState.target)) {
+      if (++batches > 500) throw new Error('This import reached its batch limit. Resume to continue scanning older archives.');
+      const already = importState.fresh ? 0 : games.length;
+      message(`Importing ${already.toLocaleString()} / ${importState.target.toLocaleString()} games… Fetching the next public archive batch.`);
+      const data = await api('/api/import/username', {provider:importState.provider,username:importState.username,limit:Math.min(100,importState.target-already),since:importState.since,cursor:importState.cursor},controller.signal);
+      if (controller.signal.aborted) throw new DOMException('Import stopped','AbortError');
+      if (!Array.isArray(data.games)) throw new Error('The provider returned an invalid game list.');
+      if (data.nextCursor && data.nextCursor === importState.cursor) throw new Error('The provider returned a repeated page. Resume later or import a PGN file.');
+      if (importState.fresh) { games=[]; importState.fresh=false; }
+      const seen = new Set(games.map(gameIdentity));
+      for (const raw of data.games) {
+        const compact = compactGame(raw);
+        const identity = gameIdentity(compact);
+        if (!seen.has(identity) && games.length < importState.target) { games.push(compact); seen.add(identity); }
+      }
+      importState.username = data.username || importState.username;
+      importState.cursor = data.nextCursor || null;
+      importState.done = data.done === true || !data.nextCursor || games.length >= importState.target;
+      showGames();
+      const first=games[0];
+      if (first?.headers?.Black?.toLowerCase() === importState.username.toLowerCase()) $('training-side').value='b';
+      else $('training-side').value='w';
+      updateImportProgress();
+      persist();
+      // Yield between batches so progress, navigation, and Stop stay responsive.
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    if (games.length) message(`Imported ${games.length.toLocaleString()} games${games.length < importState.target ? ' — no more matching public games in this date range' : ''}. Choose a game and the side you played to review it.`);
+    else message('No finished standard games were found for this account in the selected dates. Try all dates or check the platform and username.');
+  } catch(error) {
+    message(error.name === 'AbortError' ? `Import stopped. ${importState.fresh ? 0 : games.length.toLocaleString()} games kept. Resume to continue.` : `Import paused: ${error.message} ${importState.fresh ? 'Your previous library is unchanged.' : `${games.length.toLocaleString()} games kept.`} Use Resume import to retry this batch.`);
+    persist();
+  } finally {
+    historyController=null;
+    historyBusy(false);
+  }
+}
+$('import-history').addEventListener('click',()=>{ void importHistory(false); });
+$('resume-history').addEventListener('click',()=>{ void importHistory(true); });
+$('cancel-history').addEventListener('click',()=>historyController?.abort());
 $('pgn-file').addEventListener('change', async (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -70,16 +188,19 @@ $('import-pgn').addEventListener('click', async () => {
   const pgn = $('pgn-input').value.trim();
   if (!pgn) { message('Paste a PGN or choose a PGN file first.'); return; }
   if (pgn.length > 750000) { message('Please import less than 750 KB of PGN at a time.'); return; }
+  if (historyController || analysisController) { message('Stop the active import or review first.'); return; }
   $('import-pgn').disabled = true;
-  message('Reading your games…');
+  $('import-history').disabled = true;
+  message('Reading your gamesâ€¦');
   try {
     const data = await api('/api/import', {pgn});
     if (!Array.isArray(data.games) || !data.games.length) throw new Error('No games were found in that PGN.');
-    games = data.games;
+    games = data.games.map(compactGame);
+    importState = null;
     showGames(); persist();
     message(`${games.length} game${games.length === 1 ? '' : 's'} imported. Choose the game and the side you played.`);
   } catch(error) { message(`Could not import: ${error.message}`); }
-  finally { $('import-pgn').disabled = false; }
+  finally { $('import-pgn').disabled = false; $('import-history').disabled = false; }
 });
 function score(result) {
   if (result.mate !== null && result.mate !== undefined) return result.mate > 0 ? 10000 - result.mate * 10 : -10000 - result.mate * 10;
@@ -88,7 +209,10 @@ function score(result) {
 }
 $('analyze-game').addEventListener('click', async () => {
   if (analysisController) return;
-  const imported = games[Number($('training-game').value)];
+  if (historyController) { message('Stop the import before reviewing a game.'); return; }
+  let imported;
+  try { imported = games[Number($('training-game').value)]; if (imported) imported = expandGame(imported); }
+  catch { message('This saved game could not be restored. Import its PGN again.'); return; }
   if (!imported) return;
   const side = $('training-side').value;
   const candidates = imported.moves.filter(move => move.color === side).slice(-12);
@@ -106,7 +230,7 @@ $('analyze-game').addEventListener('click', async () => {
   try {
     for (let i=0; i<candidates.length; i++) {
       const move = candidates[i];
-      message(`Reviewing move ${i+1} of ${candidates.length}… Comparing your move with the engine’s suggestion.`);
+      message(`Reviewing move ${i+1} of ${candidates.length}â€¦ Comparing your move with the engineâ€™s suggestion.`);
       const before = await api('/api/analyze', {fen:move.before}, controller.signal);
       const after = await api('/api/analyze', {fen:move.fen}, controller.signal);
       if (generation !== analysisGeneration) return;
@@ -198,7 +322,7 @@ function solve(from,to,promotion) {
   solved=true;selected=null;
   puzzle.solvedCount = (puzzle.solvedCount || 0) + 1;
   persist();
-  $('puzzle-count').textContent = `Personal puzzle ${puzzleIndex+1} / ${puzzles.length} · Solved ${puzzle.solvedCount}× in ${puzzle.attempts} attempts`;
+  $('puzzle-count').textContent = `Personal puzzle ${puzzleIndex+1} / ${puzzles.length} Â· Solved ${puzzle.solvedCount}Ã— in ${puzzle.attempts} attempts`;
   $('puzzle-feedback').textContent=`Found it: ${puzzle.bestSan}. Now try playing out the position with Run it back.`;
   evidence();drawPuzzle();
 }
@@ -243,8 +367,33 @@ $('run-it-back').addEventListener('click',()=>{
 try {
   const data=JSON.parse(localStorage.getItem(KEY)||'null');
   if(data && Array.isArray(data.games) && Array.isArray(data.reports) && Array.isArray(data.puzzles)) {
-    games=data.games;reports=data.reports;puzzles=data.puzzles;
+    games=data.games.map(compactGame);reports=data.reports;puzzles=data.puzzles;importState=data.importState || null;
     showGames();showReport();
     if(games.length)message('Your imported games and personal training material have been restored.');
   }
 } catch { message('A fresh training room is ready. Import your PGN to begin.'); }
+
+// IndexedDB keeps large archives off the synchronous localStorage path. The
+// small fallback above preserves puzzles and a usable sample without it.
+const restoreVersion = persistenceVersion;
+void (async () => {
+  try {
+    const db = await database();
+    const saved = await new Promise((resolve,reject) => {
+      const tx=db.transaction('library','readonly');
+      const request=tx.objectStore('library').get('current');
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    });
+    if (persistenceVersion !== restoreVersion || historyController || !saved || !Array.isArray(saved.games)) return;
+    games=saved.games.map(compactGame);
+    importState=saved.importState || null;
+    showGames();
+    historyBusy(false);
+    updateImportProgress();
+    if(games.length) message(`${games.length.toLocaleString()} imported games restored from this browser’s database.${importState && !importState.done ? ' Resume import to continue where you stopped.' : ''}`);
+    $('history-storage').textContent=`${games.length.toLocaleString()} games saved in this browser’s database.`;
+  } catch { historyBusy(false); }
+})();
+historyBusy(false);
+updateImportProgress();

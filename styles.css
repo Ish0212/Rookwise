@@ -348,3 +348,12 @@ footer { display: flex; justify-content: space-between; gap: 16px; border-top: 1
 .session-actions > .button { flex: 1; min-width: 0; padding: 9px 6px; font-size: 11px; }
 #resign { color: #c8c2ba; }
 #resign:hover:not(:disabled) { color: #f2c5be; border-color: #8a5c53; }
+
+/* Public history import controls */
+.import-options { display: flex; gap: 12px; margin-top: 6px; }
+.import-options > label { flex: 1; min-width: 0; }
+.import-options select { display: block; width: 100%; margin-top: 7px; }
+#history-progress { display: block; width: 100%; height: 8px; margin-top: 14px; accent-color: #5aa2e8; }
+#history-progress::-webkit-progress-bar { background: #191815; border-radius: 2px; }
+#history-progress::-webkit-progress-value { background: #5aa2e8; border-radius: 2px; }
+#history-progress::-moz-progress-bar { background: #5aa2e8; }
