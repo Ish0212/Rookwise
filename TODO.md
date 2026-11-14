@@ -10,7 +10,8 @@ Remaining product work:
 - More history, full-game reviews, durable per-user storage and cross-device sync.
 - Optional clocks, engine hints and multiple saved live games.
 - A trained human-move model and reproducible evaluation pipeline before claiming general improvement or faithful personal style imitation.
-- Hosted deployment and operational resource controls.
+- Choose a managed Node host and deploy the app with worker-process/resource monitoring, rate limits and persistence backups.
+- Verify a public browser demo without requiring Node installation; keep the stronger engine and the public server analysis queues within the chosen host's limits.
 - Real-browser desktop/mobile visual and touch regression coverage.
 
 See PLAN.md for the full product direction and release criteria. Current presets and settings replay are not learned imitation.

@@ -11,6 +11,7 @@ function createApp({ engine = new CustomEngine(), analyzer = engine.analyze ? en
   app.disable('x-powered-by');
   app.locals.engine = engine;
   app.locals.analyzer = analyzer;
+  app.get('/healthz', (req, res) => res.json({ ok: true }));
   const gameJson = express.json({ limit: '1mb', strict: true });
   const moveJson = express.json({ limit: '8kb', strict: true });
   app.use((req, res, next) => (req.path === '/api/import' ? gameJson : moveJson)(req, res, next));

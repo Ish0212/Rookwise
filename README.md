@@ -16,6 +16,10 @@ Requires Node.js 22 or newer:
 
 Open **http://localhost:3001**, keeping the server running. Opening index.html directly does not work. No API keys or chess-account passwords are required. The original repository URL remains ChessAI; the product is Rookmate.
 
+## Try the hosted demo
+
+Use the [Render deploy blueprint](https://render.com/deploy?repo=https://github.com/Ish0212/ChessAI). It builds the included Dockerfile and health-checks the Node app. Render generates the public URL after you connect the public repository and deploy. The free service may sleep when idle, making the first request slower. Player data stays in each browser; no server database is configured.
+
 ## Play and adapt
 
 - Play either color, choose promotions, review moves, flip the board, take back during a live game, and export PGN.

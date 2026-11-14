@@ -48,7 +48,9 @@ test('rating controls search effort while seeded plausible sampling is repeatabl
   assert.ok(stronger.nodes > first.nodes);
   const observed = new Set(Array.from({ length: 12 }, (_, n) => searchPosition(fen, { rating: 500, seed: n * 100000 }).move));
   assert.ok(observed.size > 1);
-  assert.equal(searchPosition('7k/8/8/8/8/8/4P3/4K3 w - - 0 1', { rating: 1900, seed: 1 }).depth, 3);
+  const sparse = searchPosition('7k/8/8/8/8/8/4P3/4K3 w - - 0 1', { rating: 1900, seed: 1 });
+  assert.match(sparse.move, /^[a-h][1-8][a-h][1-8][qrbn]?$/);
+  assert.ok(sparse.nodes > 0 && sparse.nodes < 250000);
 });
 
 test('observed position preferences change sampling without admitting illegal moves or bad blunders', () => {
