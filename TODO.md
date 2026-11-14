@@ -1,38 +1,16 @@
-# Chess AI — Todo List
+# Future work
 
-Planned improvements and ideas for the Chess AI project.
+Implemented: local play, both colors, Stockfish isolation, resume/replay/PGN export, PGN and public-username import, bounded short reviews, source-based puzzles and rematches, sample scouting, result-based difficulty calibration, rival presets, and dated settings replay.
 
-## Features
+Remaining product work:
 
-- [ ] Add support for playing as Black vs AI (White)
-- [ ] Integrate Stockfish or stronger engine via UCI/WebAssembly
-- [ ] Add game analysis mode (engine evaluation of positions)
-- [ ] Support for PGN import/export
-- [ ] Add sound effects for moves and captures
-- [ ] Mobile-friendly touch controls
-- [ ] Dark/light theme toggle
-- [ ] Optional Gemini API integration for win probability analysis
+- Deeper analysis with robust acceptable-alternative validation and multi-move puzzle solutions.
+- Broader source-linked tactical/theme reports and larger-sample skill estimation.
+- Faithful past-self style approximation, with measured evidence that it reflects historical choices.
+- More history, full-game reviews, durable per-user storage and cross-device sync.
+- Optional clocks, engine hints and multiple saved live games.
+- A reproducible learning pipeline with evaluated model versions before claiming improvement from shared player games.
+- Hosted deployment and operational resource controls.
+- Real-browser desktop/mobile visual and touch regression coverage.
 
-## AI & Training
-
-- [ ] Increase search depth when performance allows
-- [ ] Add opening book support
-- [ ] Improve learned model architecture (deeper network)
-- [ ] Add endgame tablebase support
-
-## UI/UX
-
-- [ ] Improve replay controls (keyboard shortcuts)
-- [ ] Add move suggestions/hints for beginners
-- [ ] Show captured pieces
-- [ ] Add clock/timer for blitz games
-
-## Infrastructure
-
-- [ ] Deploy server for global game sync
-- [ ] Add user authentication
-- [ ] Persist game history across sessions
-
----
-
-*Feel free to open an issue for any of these or suggest new ideas!*
+See PLAN.md for the full product direction and release criteria. Current presets and settings replay are not learned imitation.

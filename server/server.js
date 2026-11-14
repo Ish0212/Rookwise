@@ -1,86 +1,96 @@
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const { analyzePositions } = require('./stockfish-analyzer');
+const path = require('node:path');
+const { Chess } = require('chess.js');
+const { StockfishEngine, LEVELS, STYLES } = require('./stockfish-engine');
+const { importPgn } = require('./pgn-import');
+const { PublicImporter } = require('./public-import');
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-const GAMES_FILE = path.join(__dirname, 'games.json');
-const MAX_GAMES = 1000;
+function createApp({ engine = new StockfishEngine(), importer = new PublicImporter() } = {}) {
+  const app = express();
+  app.disable('x-powered-by');
+  app.locals.engine = engine;
+  const gameJson = express.json({ limit: '1mb', strict: true });
+  const moveJson = express.json({ limit: '8kb', strict: true });
+  app.use((req, res, next) => (req.path === '/api/import' ? gameJson : moveJson)(req, res, next));
 
-app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+  app.post('/api/move', async (req, res) => {
+    const { fen, difficulty = 'medium', style = 'balanced' } = req.body || {};
+    if (typeof fen !== 'string' || fen.length > 200 || /[\r\n]/.test(fen)) {
+      return res.status(400).json({ error: 'A valid FEN position is required' });
+    }
+    try { new Chess(fen); } catch { return res.status(400).json({ error: 'Invalid FEN position' }); }
+    if (typeof difficulty !== 'string' || !Object.hasOwn(LEVELS, difficulty)) {
+      return res.status(400).json({ error: 'Difficulty must be easy, medium, or hard' });
+    }
+    if (!STYLES.includes(style)) return res.status(400).json({ error: 'Style must be balanced, attacking, or careful' });
+    try {
+      const move = await engine.move(fen, difficulty, style);
+      res.json({ move });
+    } catch (error) {
+      console.error('Move request failed:', error.message);
+      res.status(503).json({ error: 'The chess engine is unavailable. Please try again.' });
+    }
+  });
 
-// Serve static files (chess game) from parent directory
-app.use(express.static(path.join(__dirname, '..')));
+  app.post('/api/analyze', async (req, res) => {
+    const { fen } = req.body || {};
+    if (typeof fen !== 'string' || fen.length > 200 || /[\r\n]/.test(fen)) return res.status(400).json({ error: 'A valid FEN position is required' });
+    try { new Chess(fen); } catch { return res.status(400).json({ error: 'Invalid FEN position' }); }
+    try {
+      res.json(await engine.analyze(fen, 'hard', { time: 450 }));
+    } catch (error) {
+      console.error('Analysis request failed:', error.message);
+      res.status(503).json({ error: 'The chess engine is unavailable. Please try again.' });
+    }
+  });
 
-function loadGames() {
-  try {
-    const data = fs.readFileSync(GAMES_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (e) {
-    return [];
+  app.post('/api/import', (req, res) => {
+    try { res.json({ games: importPgn(req.body && req.body.pgn) }); }
+    catch (error) { res.status(400).json({ error: error.message }); }
+  });
+
+  app.post('/api/import/username', async (req, res) => {
+    try { res.json(await importer.import(req.body || {})); }
+    catch (error) {
+      if (error.status === 429) res.set('Retry-After', '60');
+      res.status(error.status || 502).json({ error: error.message });
+    }
+  });
+
+  const root = path.resolve(__dirname, '..');
+  // Only public game assets are served; source, dependencies, and .git stay private.
+  app.get(['/', '/index.html'], (req, res) => res.sendFile(path.join(root, 'index.html')));
+  for (const asset of ['app.js', 'styles.css', 'training.js', 'personal.js']) {
+    app.get('/' + asset, (req, res) => res.sendFile(path.join(root, asset)));
   }
+  app.get('/vendor/chess.js', (req, res) => res.sendFile(path.join(__dirname, 'node_modules/chess.js/dist/esm/chess.js')));
+  app.use('/api', (req, res) => res.status(404).json({ error: 'API endpoint not found' }));
+  app.use((req, res) => res.status(404).type('text').send('Not found'));
+  app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    res.status(error.status === 413 ? 413 : 400).json({ error: error.status === 413 ? 'Request is too large' : 'Invalid request body' });
+  });
+  return app;
 }
 
-function saveGames(games) {
-  fs.writeFileSync(GAMES_FILE, JSON.stringify(games), 'utf8');
+function startServer({ port = process.env.PORT || 3001, host = process.env.HOST || '127.0.0.1', engine = new StockfishEngine() } = {}) {
+  const app = createApp({ engine });
+  const server = app.listen(port, host, () => {
+    console.log(`Chess AI running at http://${host}:${server.address().port}`);
+  });
+  server.on('close', () => engine.close());
+  return { app, server, engine };
 }
 
-// POST /api/games - receive a new game from a player
-app.post('/api/games', (req, res) => {
-  try {
-    const { positions, outcome, userId } = req.body;
-    if (!positions || !Array.isArray(positions) || positions.length === 0) {
-      return res.status(400).json({ error: 'Invalid game data' });
-    }
-    const games = loadGames();
-    games.push({ positions, outcome, userId: userId || null });
-    while (games.length > MAX_GAMES) games.shift();
-    saveGames(games);
-    res.json({ ok: true, totalGames: games.length });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+if (require.main === module) {
+  const { server, engine } = startServer();
+  const shutdown = () => {
+    engine.close();
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1000).unref();
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
 
-// POST /api/analyze - analyze positions with Stockfish, return eval scores 0-1
-app.post('/api/analyze', async (req, res) => {
-  try {
-    const { fens } = req.body;
-    if (!fens || !Array.isArray(fens) || fens.length === 0) {
-      return res.status(400).json({ error: 'Invalid request: fens array required' });
-    }
-    if (fens.length > 50) {
-      return res.status(400).json({ error: 'Max 50 positions per request' });
-    }
-    const evals = await analyzePositions(fens);
-    res.json({ evals });
-  } catch (e) {
-    console.error('Analyze error:', e);
-    res.status(500).json({ error: 'Analysis failed' });
-  }
-});
-
-// GET /api/games - return games for training (optional ?userId=xxx for specific user)
-app.get('/api/games', (req, res) => {
-  try {
-    let games = loadGames();
-    const userId = req.query.userId;
-    if (userId) {
-      games = games.filter(g => g.userId === userId);
-    }
-    res.json({ games });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Chess AI server running at http://localhost:${PORT}`);
-  console.log(`  - Game: http://localhost:${PORT}/index.html`);
-  console.log(`  - API:  http://localhost:${PORT}/api/games`);
-});
+module.exports = { createApp, startServer };
