@@ -6,14 +6,6 @@ import { chooseDifficulty, recordCompletedGame, engineOptions, describePartner, 
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = 'chessai.session.v1';
 const names = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
-const paths = {
-  p: '<circle cx="32" cy="18" r="8"/><path d="M26 27h12l-2 7 7 13H21l7-13z"/><path d="M19 48h26v6H19z"/>',
-  r: '<path d="M19 11h7v7h5v-7h6v7h5v-7h6v16l-7 6 2 15H23l2-15-6-6z"/><path d="M20 48h26v6H20zM25 27h16"/>',
-  b: '<path d="M32 9C26 16 20 20 22 27c1 4 5 6 7 7l-7 13h20l-7-13c7-3 10-8 6-14z"/><path d="m32 17 5 9M20 48h24v6H20z"/>',
-  n: '<path d="m23 46 2-12-9 3-3-8 9-12 11-5 2-7 5 6c14 5 12 23 6 35z"/><path d="m24 18 8 1-7 9M20 48h28v6H20z"/><circle cx="31" cy="21" r="1.5" fill="currentColor" stroke="none"/>',
-  q: '<path d="m18 20 7 10 7-15 7 15 7-10-6 25H24z"/><circle cx="17" cy="17" r="3.5"/><circle cx="32" cy="12" r="3.5"/><circle cx="47" cy="17" r="3.5"/><path d="M23 41h18M20 48h24v6H20z"/>',
-  k: '<path d="M32 5v13m-6-8h12" fill="none"/><path d="M32 22c-9-13-21-2-14 8l7 15h14l7-15c7-10-5-21-14-8z"/><path d="M24 39h16M20 48h24v6H20z"/>'
-};
 function pieceSvg(type, color) {
   return pieces[color + type.toUpperCase()].replace('<svg ', '<svg class="piece" aria-hidden="true" ');
 }

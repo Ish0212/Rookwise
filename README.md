@@ -1,49 +1,85 @@
-# Chess AI
+# Rookmate
 
-A local chess practice and training room. Play either color against Stockfish, import your games, and turn critical positions into personal puzzles and rematches.
+Open-source personal chess practice. Play our custom opponent, import your Chess.com or Lichess history, and turn real positions into puzzles.
 
-## Run locally
+**Status: local prototype.** The opponent has its own search and evaluation. Its level and learned move preferences are experimental, not a trained human-move model or certified Elo rating.
 
-Install Node.js 22 or newer, then run from the repository root:
+## Start
 
-```sh
-npm install
-npm --prefix server install
-npm start
-```
+Requires Node.js 22 or newer:
 
-Open **http://localhost:3001** and keep the terminal running. `PORT` and `HOST` override the default local address. Opening `index.html` directly does not work; the Node server supplies engine moves and the local chess rules module.
+    git clone https://github.com/Ish0212/ChessAI.git
+    cd ChessAI
+    npm install
+    npm --prefix server install
+    npm start
 
-## Play and train
+Open **http://localhost:3001**, keeping the server running. Opening index.html directly does not work. No API keys or chess-account passwords are required. The original repository URL remains ChessAI; the product is Rookmate.
 
-- Choose White or Black and Easy, Medium, or Hard. Select a piece to see legal destinations. Castling, en passant, promotion choices, checkmate, and draws are handled by chess.js.
-- Take back a turn, inspect move history, flip the board, and export PGN. Your current game resumes from browser storage after reload. New games and position rematches replace that saved game.
-- Paste or upload PGN, or import public games by Chess.com/Lichess username. No chess account password is needed. Provider availability and rate limits apply.
-- Select your side and review a game. The review compares up to your **12 most recent moves**, using short **450 ms** Stockfish searches before and after each move. Evaluation losses of at least one pawn produce personal practice positions.
-- Solve, retry, reveal the engine suggestion, inspect the continuation and source move, or choose **Run it back** to play the original position. Attempts and solves are stored separately from game performance.
-- The scouting report describes the reviewed sample and links its practice material to actual moves. It does not establish your overall skill or a stable weakness from a small sample.
-- Opt into adaptive difficulty: after three unique completed standard games at the same level, results can move the next challenge one step up or down. Games under eight plies and position rematches do not count. This is a practice setting, not an Elo rating.
-- Balanced, Attacking, and Careful rival preferences affect selection among engine candidates. Dated saved settings let you revisit an earlier challenge. This replays **past settings**, not a learned imitation of your historical moves.
+## Play and adapt
 
-## Limits and storage
+- Play either color, choose promotions, review moves, flip the board, take back during a live game, and export PGN.
+- Resign with confirmation. Reload preserves the game and resignation result.
+- Choose a numeric opponent level from **400 to 2200**. It is an estimated practice scale, not measured Elo.
+- Play, Train and Opponent are separate screens. Navigating preserves the current game.
+- New games and position rematches replace the saved game.
 
-This version does not train a shared model or learn from everyone's games. Personalization uses your imported material, saved practice results, and explicit settings. There is no shared training database, account system, or cross-device sync.
+### Our opponent
 
-Games, reports, puzzles, and practice profiles are saved in this browser on this device. Clearing site data removes them; storage must be available. Keep original PGNs and export important games. PGN imports accept up to 20 games and 750 KB, with at most 600 plies per game. Public username imports are bounded; Chess.com searches a limited set of recent archive months.
+Gameplay uses our own bounded worker-thread engine: material and positional evaluation, shallow iterative search, and sampling among plausible moves. **Stockfish does not select gameplay moves.**
 
-Short analysis can miss tactics. A puzzle currently accepts the engine's selected move; other strong moves can exist. The report is a practice aid rather than a complete game review. Faithful past-self imitation, deeper weakness modeling, and shared learning remain future work in [PLAN.md](PLAN.md) and [TODO.md](TODO.md).
+Balanced, Attacking and Careful are explicit preferences. Local memory learns position-specific move frequencies and capture/check/queen tendencies. These apply small biases within the candidate-quality band. Public imports learn only the account owner's moves; PGNs learn the side selected for review.
 
-## Verification and code
+This is an inspectable learning mechanism, **not a pretrained human-move model**. It does not establish human-like cognition, general improvement or faithful historical style imitation. Those require training data and evaluation beyond this prototype.
 
-```sh
-npm test
-```
+### Performance-led level
 
-Tests cover engine isolation and recovery, HTTP contracts, import parsing/provider behavior, and gameplay/training state in a DOM simulator. The test runner uses Node's experimental VM module support to execute the actual browser module graph. Real-browser visual and touch QA remains required when browser tooling is available.
+After a completed standard game, including resignation, Rookmate samples up to 12 of your moves across the game. Local Stockfish analysis compares before/after positions.
 
-- `index.html`, `styles.css`, `app.js`: board, game controls, replay and saved session.
-- `training.js`, `personal.js`: imported-game practice and optional opponent settings.
-- `server/`: bounded Stockfish process, HTTP API and game importers; see [server/README.md](server/README.md).
-- `tests/`: interaction and integration regression tests.
+A median and capped mean keep one blunder from dominating. Move quality leads the adjustment; the result has a smaller influence. A well-played loss can raise the level, while a poorly played win can lower it. Small samples reduce the adjustment. Fewer than three analyzed moves cannot raise it. Games under eight plies and position rematches do not count.
 
-No frontend build step or CDN dependency is needed. chess.js is served from the installed server dependency. Stockfish is distributed under GPLv3; retain its license when redistributing.
+Opponent shows the signed change and explanation. Changes are bounded to 90 points per game. This is a heuristic, not calibrated performance Elo. Saved snapshots replay earlier settings, not your historical move choices.
+
+## Import and train
+
+1. Open **Train**, choose Chess.com or Lichess, and enter a public username, @name or matching profile URL.
+2. Select **10, 100, 1,000 or 5,000 games** and all dates, the last week or last two weeks.
+3. Follow progress, stop or resume. Sequential batches contain at most 100 games. Provider availability and rate limits apply; malformed/nonstandard games are skipped.
+4. Select a game, confirm your side, and analyze it. Alternatively upload/paste PGN: up to 20 games, 750 KB and 600 plies per game.
+5. Solve puzzles, inspect source moves and engine continuations, or **Run it back** against the custom opponent.
+
+Review currently compares your last 12 moves using short 450 ms searches. Importing does not automatically analyze every game. Puzzles accept the selected engine line; other strong moves may exist. Short searches can miss tactics. Reports describe the reviewed sample rather than diagnosing a stable weakness from one game.
+
+## Storage and networking
+
+Sessions, profiles, observed moves, reports and puzzles are browser-local. Large imported libraries use IndexedDB and compact moves. If IndexedDB is unavailable, the full library lasts for the session but only 20 games persist in a localStorage fallback. Keep original PGNs.
+
+Positions/PGNs go to your local Node server. Public imports contact Chess.com or Lichess from that server. They do not authenticate account ownership or access private games. There is no account system, cross-device sync or shared training database.
+
+Default binding is 127.0.0.1; PORT and HOST can override it. Public source does not mean a hosted production service has been deployed. Multi-user hosting still needs identity, durable storage and operational controls.
+
+## Architecture
+
+| Files | Purpose |
+| --- | --- |
+| app.js, index.html, styles.css | Gameplay, views, resignation and performance review |
+| personal.js, memory.js | Calibration, settings and observed moves |
+| training.js | Imports, local library, puzzles and evidence |
+| server/custom-engine.js | Our gameplay engine in worker threads |
+| server/stockfish-engine.js | Separate queued analysis teacher |
+| server/public-import.js | Provider pagination, filters and cursors |
+| pieces.js, licenses/ | Licensed Chessnut artwork |
+
+## Test and contribute
+
+    npm test
+
+Tests cover custom-engine tactics/responsiveness, real Stockfish, thousand-game pagination, provider failures, imports, stop/resume, resignation and quality-led progression. DOM tests execute actual modules using Node's experimental VM-module support. Desktop/mobile visual browser QA remains unverified in the current development environment.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [TODO.md](TODO.md) and [PLAN.md](PLAN.md).
+
+## License and credits
+
+Original Rookmate code is **MIT licensed**; see [LICENSE](LICENSE). Chessnut artwork by Alexis Luengas is Apache-2.0; see [THIRD_PARTY.md](THIRD_PARTY.md). Stockfish is a separate GPLv3 analysis dependency, and chess.js uses BSD-2-Clause. Dependencies retain their licenses.
+
+The interface takes layout cues from Lichess's public source and Chess.com's navigation. No Lichess application source or Chess.com artwork is bundled. Rookmate is independent and unaffiliated with either service.

@@ -4,6 +4,7 @@ const { once } = require('node:events');
 const { Chess } = require('../server/node_modules/chess.js');
 const { createApp } = require('../server/server');
 const { StockfishEngine } = require('../server/stockfish-engine');
+const { CustomEngine } = require('../server/custom-engine');
 
 async function serve(t, engine) {
   const server = createApp({ engine }).listen(0, '127.0.0.1');
@@ -17,6 +18,26 @@ async function serve(t, engine) {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), ...options,
   });
 }
+
+test('custom gameplay uses numeric level and remains independent of the analysis engine', async t => {
+  const engine = new CustomEngine();
+  let analyses = 0;
+  const app = createApp({engine,analyzer:{analyze:async()=>{analyses++;return {cp:0,mate:null};}}});
+  const server = app.listen(0,'127.0.0.1');
+  await once(server,'listening');
+  t.after(async()=>{engine.close();await new Promise(resolve=>server.close(resolve));});
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (route,body)=>fetch(base+route,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const chess = new Chess();
+  const response = await post('/api/move',{fen:chess.fen(),rating:800,preferences:{e2e4:20},habits:{checkRate:.1}});
+  assert.equal(response.status,200);
+  const {move}=await response.json();
+  assert.ok(chess.move({from:move.slice(0,2),to:move.slice(2,4),promotion:move[4]}));
+  assert.equal(analyses,0);
+  assert.equal((await post('/api/analyze',{fen:chess.fen()})).status,200);
+  assert.equal(analyses,1);
+  for(const rating of [399,2201,800.5,'800']) assert.equal((await post('/api/move',{fen:chess.fen(),rating})).status,400);
+});
 
 test('move API passes valid FEN and default difficulty to the engine', async t => {
   const calls = [];

@@ -1,32 +1,23 @@
-# Resume the ChessAI rebuild
+# Rookmate development handoff
 
-User requested a checkpoint because usage was nearly exhausted, then explicitly requested a commit and resumed the rebuild. All code is saved in this checkout. This handoff is included in the checkpoint commit; inspect git log for its identifier. No push is part of that checkpoint. Resume in the same conversation or read this file in a new session.
+## Current state
+The original app has been replaced. The public repository is https://github.com/Ish0212/ChessAI; its URL is unchanged while the app is named Rookmate. Local server runs at http://localhost:3001 in retained session 67882. Source and gameplay HTTP smoke both return 200. User wants each completed feature committed and pushed to origin/main.
 
-## User intent
-Replace the old repository app entirely with reliable chess and a personalized training companion alongside Chess.com/Lichess: public history/PGN imports, puzzles from mistakes, evidence-based scouting, critical-position rematches, adaptive difficulty, rival styles, and eventually credible past-self imitation. Preserve Git history. User authorized orchestrator plus three GPT-6.1 Sol workers (UI medium, engine high, validation high). They selected Astra high in their UI; root cannot independently verify its model selection.
-
-## Saved implementation
-- UI worker completed index.html, styles.css, app.js, training.js. Board, both colors, promotion, legal rules via chess.js, restart stale-request protection, local resume, replay, PGN export. Training imports PGN/public usernames, reviews last 12 player moves with short Stockfish analysis, creates puzzles, saves attempts/solves, shows concrete engine-line evidence and rematches from FEN. Top links expose training and partner settings.
-- Engine worker rebuilt server with serialized bounded Stockfish, timeout/crash recovery, /api/move, /api/analyze, /api/import and /api/import/username. Imports from Chess.com and Lichess were live verified. Private source is not exposed by static hosting. Worker is finishing preset rival styles using bounded MultiPV candidates; check ENGINE_HANDOFF.md and actual code before claiming this works.
-- Root added personal.js: optional difficulty calibration every three completed standard games, duplicate-result protection, dated difficulty/style snapshots. Snapshot replay is NOT imitation of past moves. UI hooks are wired. Profile tests still pending at checkpoint.
-- Validation worker added package scripts/jsdom test infrastructure, real Stockfish API tests and DOM game tests. Deleted obsolete chess_ai.py. It is adding training/profile tests and updating README/TODO/server README/PLAN status; check VALIDATION_HANDOFF.md.
-
-## Latest integration update
-New UI/engine/import pass: user requested non-green practical UI, custom opponent, resignation, quality-led numeric practice level, large date-filtered imports, frequent commits, new name and public open-source docs. Working name Rookmate. UI commit 381576d is saved. Custom engine and learning-prior tests pass; calibration tests pass. Resignation and postgame quality review are wired. Import worker saved pagination/UI/IndexedDB changes but hit usage limit before final validation; root must finish. Chess.com original bug was missing frontend click handler. Current import UI now has it. Main server must be restarted to load new custom engine and public assets. Public GitHub repository already confirmed public; no push yet. Root is checkpoint-committing the current work on user request before resuming validation. Remaining: import regression tests/live check, fix any mojibake in training.js, connect imported history to memory.js, brand/license/docs, full suite and server restart, then commits/push. Visual QA remains unavailable.
-
-All three workers have stopped. Engine styles are implemented and wired through personal.js. Training/profile integration tests and README, TODO, server README updates are complete. Root reran all 31 tests successfully after the final edits and confirmed browser access remains unavailable. No VALIDATION_HANDOFF.md was produced before that worker hit its usage limit; its saved tests and docs are present.
+## Implemented
+- Neutral charcoal/blue practical chess UI with tan board, licensed Chessnut pieces, separate Play/Train/Opponent views.
+- Custom worker-thread engine for gameplay. Stockfish is only an analysis teacher.
+- Local observed-position move frequencies and capture/check/queen tendencies influence plausible candidate sampling.
+- Numeric practice estimate400..2200 driven primarily by sampled move quality. Good losses can raise it. Not calibrated Elo.
+- Resignation, reload persistence, promotion, replay, PGN export, stale-reply protection.
+- Public history10/100/1000/5000 with date filters, batching, stop/resume, compact IndexedDB archive and20game fallback. Fixed original missing import button handler.
+- Personal puzzles/source evidence/rematches, performance reasons, earlier-settings replay.
+- README, MIT license, attribution, contributor guidance, CI workflow and package metadata prepared.
 
 ## Verification
-Latest root `npm test` run: 28 tests passed (engine lifecycle, provider import unit tests, API validation, real Stockfish moves, DOM gameplay/restart/resume/special moves/endings/export). New training/profile tests may have landed after that run; rerun after workers settle. DOM harness uses actual ESM graph with dynamic import callback and Node --experimental-vm-modules.
-Browser control host was unavailable, so no visual browser QA has been completed. Do not claim screenshot/mobile visual verification. Workers read Sites local preview and computer-use instructions.
+All56tests pass: real Stockfish, own-engine tactics/responsiveness, provider pagination past1000games, full DOM module imports, import button/filter/stop-resume, resignation, and strong-loss calibration. Live Chess.com returned100distinct games; Lichess import also succeeded. Default custom move endpoint returned legal move without analysis. Browser control host unavailable: visual/touch QA remains unverified.
 
-## Next actions
-1. Read agent handoff files/status; inspect latest diff and finish outstanding bounded edits.
-2. Ensure style API matches personal.js {style: balanced|attacking|careful}; don't show controls that have no effect.
-3. Finish training/profile tests and truthful docs. Verify mate explanations, puzzle replay, persistence and public import errors. Exact selected-line puzzles must not claim all alternatives inferior.
-4. Run npm test and git diff --check after final changes. Use available browser QA if host returns; otherwise report limit.
-5. Inspect Git diff and replace obsolete code/docs. User requested replacement in Git; commit/push to origin main only after verification and required sandbox approval. Repository origin is https://github.com/Ish0212/ChessAI. .git is currently read-only under sandbox, so Git mutation may require escalation. Do not force push or discard history.
-6. Provide a concise truthful completion report. Real learned style imitation/past-self is not implemented; remaining scope must be explicit, not silently called complete.
+## Honest limits
+Own engine is heuristic with observed-move priors, not a trained human policy or literal human thought. No certified rating. Past-settings replay is not faithful past-self imitation. Short reviews sample12moves and puzzles accept selected lines; deeper full-game review/alternatives remain future work. Public GitHub source is not a hosted multi-user deployment.
 
-## Run
-Dependencies installed. `npm start` serves http://127.0.0.1:3001. `npm test` runs automated checks. No need to recreate or delete the checkout. PLAN.md contains product roadmap and acceptance criteria.
+## Resume
+Check git status/log and remote before editing. The previous handoffs are historical; README/TODO and current source describe the final implementation. Final release docs/test commit is being pushed at this handoff update. Preserve history and commit/push focused tested features. Do not claim unavailable visual QA or future learned-model work complete.

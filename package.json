@@ -1,8 +1,8 @@
 {
-  "name": "chess-ai",
-  "version": "2.0.0",
+  "name": "rookmate",
+  "version": "2.1.0",
   "private": true,
-  "description": "Local chess against Stockfish with a browser interface",
+  "description": "Open-source personal chess practice with a custom adaptive opponent",
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
@@ -14,5 +14,6 @@
   },
   "engines": {
     "node": ">=22"
-  }
+  },
+  "license": "MIT"
 }
