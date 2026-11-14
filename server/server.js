@@ -60,7 +60,7 @@ function createApp({ engine = new StockfishEngine(), importer = new PublicImport
   const root = path.resolve(__dirname, '..');
   // Only public game assets are served; source, dependencies, and .git stay private.
   app.get(['/', '/index.html'], (req, res) => res.sendFile(path.join(root, 'index.html')));
-  for (const asset of ['app.js', 'styles.css', 'training.js', 'personal.js']) {
+  for (const asset of ['app.js', 'styles.css', 'training.js', 'personal.js', 'pieces.js']) {
     app.get('/' + asset, (req, res) => res.sendFile(path.join(root, asset)));
   }
   app.get('/vendor/chess.js', (req, res) => res.sendFile(path.join(__dirname, 'node_modules/chess.js/dist/esm/chess.js')));

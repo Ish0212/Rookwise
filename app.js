@@ -1,4 +1,5 @@
 import { Chess } from '/vendor/chess.js';
+import { pieces } from './pieces.js';
 import { chooseDifficulty, recordCompletedGame, engineOptions, describePartner, mountPersonal } from './personal.js';
 
 const $ = (id) => document.getElementById(id);
@@ -13,9 +14,7 @@ const paths = {
   k: '<path d="M32 5v13m-6-8h12" fill="none"/><path d="M32 22c-9-13-21-2-14 8l7 15h14l7-15c7-10-5-21-14-8z"/><path d="M24 39h16M20 48h24v6H20z"/>'
 };
 function pieceSvg(type, color) {
-  const fill = color === 'w' ? '#fcf9e9' : '#273e30';
-  const stroke = color === 'w' ? '#4e604b' : '#15291e';
-  return `<svg class="piece" viewBox="0 0 64 64" aria-hidden="true" fill="${fill}" stroke="${stroke}" color="${stroke}" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round">${paths[type]}</svg>`;
+  return pieces[color + type.toUpperCase()].replace('<svg ', '<svg class="piece" aria-hidden="true" ');
 }
 let game = new Chess();
 let playerColor = 'w';
@@ -67,14 +66,14 @@ function positionPly() { return reviewPly === null ? history().length : reviewPl
 function colorName(color) { return color === 'w' ? 'White' : 'Black'; }
 function canMove() { return reviewPly === null && !busy && !game.isGameOver() && game.turn() === playerColor; }
 function statusText() {
-  if (game.isCheckmate()) return [game.turn() === playerColor ? 'A lesson for next time.' : 'Beautifully played.', `${colorName(game.turn() === 'w' ? 'b' : 'w')} wins by checkmate. Start a new game whenever you’re ready.`];
-  if (game.isStalemate()) return ['An even finish.', 'Draw by stalemate. There are no legal moves.'];
-  if (game.isThreefoldRepetition()) return ['An even finish.', 'Draw by threefold repetition.'];
-  if (game.isInsufficientMaterial()) return ['An even finish.', 'Draw by insufficient material.'];
-  if (game.isDraw()) return ['An even finish.', 'Draw under the fifty-move rule.'];
-  if (engineError) return ['A brief pause.', 'Your position is safe. Retry to continue your game.'];
-  if (busy) return ['Finding a reply…', 'Your practice partner is thinking through the position.'];
-  if (game.isCheck()) return [game.turn() === playerColor ? 'Your king is in check.' : 'A little pressure.', `${colorName(game.turn())} must get out of check.`];
+  if (game.isCheckmate()) return [game.turn() === playerColor ? 'Checkmate.' : 'Checkmate.', `${colorName(game.turn() === 'w' ? 'b' : 'w')} wins by checkmate. Start a new game whenever you’re ready.`];
+  if (game.isStalemate()) return ['Draw.', 'Draw by stalemate. There are no legal moves.'];
+  if (game.isThreefoldRepetition()) return ['Draw.', 'Draw by threefold repetition.'];
+  if (game.isInsufficientMaterial()) return ['Draw.', 'Draw by insufficient material.'];
+  if (game.isDraw()) return ['Draw.', 'Draw under the fifty-move rule.'];
+  if (engineError) return ['Engine unavailable.', 'Your position is safe. Retry to continue your game.'];
+  if (busy) return ['Computer thinking…', 'Waiting for the computer to move.'];
+  if (game.isCheck()) return [game.turn() === playerColor ? 'Your king is in check.' : 'Check.', `${colorName(game.turn())} must get out of check.`];
   return game.turn() === playerColor ? ['Your move.', `You’re playing ${colorName(playerColor).toLowerCase()}. Take your time.`] : ['Ready for a reply.', 'Your practice partner will move next.'];
 }
 function renderBoard() {
@@ -110,7 +109,7 @@ function renderMoves() {
   const moves = history();
   const scroll = $('moves').scrollTop;
   if (!moves.length) {
-    $('moves').innerHTML = '<div class="empty-history"><span>♙</span>Your story starts with the first move.</div>';
+    $('moves').innerHTML = '<div class="empty-history"><span>♙</span>No moves yet</div>';
   } else {
     const fragment = document.createDocumentFragment();
     let row;
@@ -151,7 +150,7 @@ function renderMoves() {
 function render() {
   if (game.isGameOver()) recordCompletedGame({ pgn: game.pgn(), playerColor, difficulty });
   const [title, detail] = statusText();
-  $('status').textContent = reviewPly !== null ? 'Looking back.' : title;
+  $('status').textContent = reviewPly !== null ? 'Reviewing position' : title;
   $('status-detail').textContent = reviewPly !== null ? 'You’re reviewing an earlier position. Return to live play to make your next move.' : detail;
   $('game-label').textContent = reviewPly !== null ? 'GAME REVIEW' : game.isGameOver() ? 'GAME COMPLETE' : busy ? 'ENGINE THINKING' : 'GAME IN PROGRESS';
   $('turn-label').textContent = `${colorName(viewingGame().turn())} to move`;
@@ -375,8 +374,21 @@ export function startPracticePosition(fen, color) {
   reviewPly = null;
   save();
   render();
+  window.location.hash = 'play';
+  updateView();
   document.querySelector('.play-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
   void askEngine();
 }
 export { pieceSvg };
+function updateView() {
+  const view = window.location.hash === '#training' ? 'training' : window.location.hash === '#personal-partner' ? 'partner' : 'play';
+  document.body.dataset.view = view;
+  document.querySelectorAll('[data-view-link]').forEach(link => {
+    if (link.dataset.viewLink === view) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  document.title = `${view === 'training' ? 'Train' : view === 'partner' ? 'Opponent' : 'Play'} • ChessAI`;
+}
+window.addEventListener('hashchange', updateView);
+updateView();
 void import('./training.js').catch((error) => { console.error('Training room could not load', error); });
