@@ -50,7 +50,7 @@ class PublicImporter {
     if (cacheable && cached && cached.expires > Date.now()) return cached.body;
     const response = await this.fetch(url, {
       signal, redirect: 'error',
-      headers: { Accept: accept, 'User-Agent': 'ChessAI-local/2.0 (open source local personal chess training)' },
+      headers: { Accept: accept, 'User-Agent': 'Rookwise/2.0 (open source personal chess training)' },
     });
     if (response.status === 404) throw new ImportError('Public player or game history was not found. Check the platform and username.', 404);
     if (response.status === 429) {

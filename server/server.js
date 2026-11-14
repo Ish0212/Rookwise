@@ -82,7 +82,7 @@ function createApp({ engine = new CustomEngine(), analyzer = engine.analyze ? en
 function startServer({ port = process.env.PORT || 3001, host = process.env.HOST || '127.0.0.1', engine = new CustomEngine() } = {}) {
   const app = createApp({ engine });
   const server = app.listen(port, host, () => {
-    console.log(`Rookmate running at http://${host}:${server.address().port}`);
+    console.log(`Rookwise running at http://${host}:${server.address().port}`);
   });
   server.on('close', () => { engine.close(); app.locals.analyzer.close(); });
   return { app, server, engine };

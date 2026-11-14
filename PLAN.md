@@ -1,4 +1,4 @@
-# ChessAI rebuild plan
+# Rookwise rebuild plan
 
 ## Product
 A personal chess training companion used alongside Chess.com and Lichess. Import real games, understand recurring mistakes, practice personalized puzzles, and play a sparring opponent calibrated to your progress.
@@ -36,7 +36,7 @@ Primary areas: Train, Play, My Games and Progress. The main demonstration is imp
 One integration owner, one UI worker (GPT-6.1 Sol medium), one engine worker (GPT-6.1 Sol high), and one validation worker (GPT-6.1 Sol high). The requested orchestration configuration is GPT-6 Astra high; the current session's underlying model is not changed by this plan.
 
 ## Current status
-The product is now Rookmate. Gameplay uses our own bounded search engine with local observed-move biases; Stockfish is used only for analysis. Numeric level changes prioritize sampled move quality over result. Resignation, large/date-filtered public imports, stop/resume, IndexedDB storage, practical charcoal/blue UI, MIT license and contributor documentation are implemented. A flaky depth-3 assertion was replaced by a legal-move plus bounded-node assertion; 56 full-suite tests pass after this change. These update the original Stockfish-opponent plan below.
+The product is now Rookwise. Gameplay uses our own bounded search engine with local observed-move biases; Stockfish is used only for analysis. Numeric level changes prioritize sampled move quality over result. Resignation, large/date-filtered public imports, stop/resume, IndexedDB storage, practical charcoal/blue UI, MIT license and contributor documentation are implemented. A flaky depth-3 assertion was replaced by a legal-move plus bounded-node assertion; 56 full-suite tests pass after this change. These update the original Stockfish-opponent plan below.
 
 Implemented: reliable local gameplay, PGN and public username imports, bounded engine reviews, source-based puzzles and rematches, sample scouting, optional result-based difficulty calibration, rival presets, and dated settings replay. All 31 automated checks pass, including real Stockfish and DOM training integration. Public imports were live checked against both providers. Browser visual QA remains unavailable because the browser control host cannot connect.
 

@@ -1,4 +1,4 @@
-# Rookmate
+# Rookwise
 
 Open-source personal chess practice. Play our custom opponent, import your Chess.com or Lichess history, and turn real positions into puzzles.
 
@@ -8,17 +8,17 @@ Open-source personal chess practice. Play our custom opponent, import your Chess
 
 Requires Node.js 22 or newer:
 
-    git clone https://github.com/Ish0212/ChessAI.git
-    cd ChessAI
+    git clone https://github.com/Ish0212/Rookwise.git
+    cd Rookwise
     npm install
     npm --prefix server install
     npm start
 
-Open **http://localhost:3001**, keeping the server running. Opening index.html directly does not work. No API keys or chess-account passwords are required. The original repository URL remains ChessAI; the product is Rookmate.
+Open **http://localhost:3001**, keeping the server running. Opening index.html directly does not work. No API keys or chess-account passwords are required.
 
 ## Try the hosted demo
 
-Use the [Render deploy blueprint](https://render.com/deploy?repo=https://github.com/Ish0212/ChessAI). It builds the included Dockerfile and health-checks the Node app. Render generates the public URL after you connect the public repository and deploy. The free service may sleep when idle, making the first request slower. Player data stays in each browser; no server database is configured.
+Use the [Render deploy blueprint](https://render.com/deploy?repo=https://github.com/Ish0212/Rookwise). It builds the included Dockerfile and health-checks the Node app. Render generates the public URL after you connect the public repository and deploy. The free service may sleep when idle, making the first request slower. Player data stays in each browser; no server database is configured.
 
 ## Play and adapt
 
@@ -38,7 +38,7 @@ This is an inspectable learning mechanism, **not a pretrained human-move model**
 
 ### Performance-led level
 
-After a completed standard game, including resignation, Rookmate samples up to 12 of your moves across the game. Local Stockfish analysis compares before/after positions.
+After a completed standard game, including resignation, Rookwise samples up to 12 of your moves across the game. Local Stockfish analysis compares before/after positions.
 
 A median and capped mean keep one blunder from dominating. Move quality leads the adjustment; the result has a smaller influence. A well-played loss can raise the level, while a poorly played win can lower it. Small samples reduce the adjustment. Fewer than three analyzed moves cannot raise it. Games under eight plies and position rematches do not count.
 
@@ -84,6 +84,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [TODO.md](TODO.md) and [PLAN.md](PLAN.md
 
 ## License and credits
 
-Original Rookmate code is **MIT licensed**; see [LICENSE](LICENSE). Chessnut artwork by Alexis Luengas is Apache-2.0; see [THIRD_PARTY.md](THIRD_PARTY.md). Stockfish is a separate GPLv3 analysis dependency, and chess.js uses BSD-2-Clause. Dependencies retain their licenses.
+Original Rookwise code is **MIT licensed**; see [LICENSE](LICENSE). Chessnut artwork by Alexis Luengas is Apache-2.0; see [THIRD_PARTY.md](THIRD_PARTY.md). Stockfish is a separate GPLv3 analysis dependency, and chess.js uses BSD-2-Clause. Dependencies retain their licenses.
 
-The interface takes layout cues from Lichess's public source and Chess.com's navigation. No Lichess application source or Chess.com artwork is bundled. Rookmate is independent and unaffiliated with either service.
+The interface takes layout cues from Lichess's public source and Chess.com's navigation. No Lichess application source or Chess.com artwork is bundled. Rookwise is independent and unaffiliated with either service.

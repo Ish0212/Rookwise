@@ -1,7 +1,7 @@
-# Rookmate development handoff
+# Rookwise development handoff
 
 ## Current state
-The original app has been replaced. The public repository is https://github.com/Ish0212/ChessAI; its URL is unchanged while the app is named Rookmate. Local server runs at http://localhost:3001 in retained session 67882. Source and gameplay HTTP smoke both return 200. User wants each completed feature committed and pushed to origin/main.
+The original app has been replaced. The public repository is https://github.com/Ish0212/Rookwise. Local server runs at http://localhost:3001 in retained session 67882. Source and gameplay HTTP smoke both return 200. User wants each completed feature committed and pushed to origin/main.
 
 ## Implemented
 - Neutral charcoal/blue practical chess UI with tan board, licensed Chessnut pieces, separate Play/Train/Opponent views.

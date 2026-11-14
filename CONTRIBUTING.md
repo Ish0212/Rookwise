@@ -1,4 +1,4 @@
-# Contributing to Rookmate
+# Contributing to Rookwise
 
 Install root and server dependencies, run npm start and npm test. Node 22+ is required; there is no frontend build step.
 

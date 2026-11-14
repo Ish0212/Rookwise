@@ -1,8 +1,8 @@
 {
-  "name": "rookmate",
+  "name": "rookwise",
   "version": "2.1.0",
   "private": true,
-  "description": "Open-source personal chess practice with a custom adaptive opponent",
+  "description": "Rookwise: open-source personal chess practice with a custom adaptive opponent",
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",

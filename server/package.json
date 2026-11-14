@@ -1,7 +1,7 @@
 {
-  "name": "rookmate-server",
+  "name": "rookwise-server",
   "version": "2.1.0",
-  "description": "Rookmate custom chess opponent, analysis and public game imports",
+  "description": "Rookwise custom chess opponent, analysis and public game imports",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

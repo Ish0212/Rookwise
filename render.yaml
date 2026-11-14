@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: rookmate-demo
+    name: rookwise-demo
     runtime: docker
     plan: free
     healthCheckPath: /healthz

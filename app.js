@@ -415,7 +415,7 @@ $('confirm-resign').addEventListener('click', () => {
   save(); render();
 });
 $('export').addEventListener('click', () => {
-  game.header('Event', 'Rookmate practice', 'White', playerColor === 'w' ? 'You' : `Rookmate (${engineOptions().rating || 800})`, 'Black', playerColor === 'b' ? 'You' : `Rookmate (${engineOptions().rating || 800})`, 'Result', resigned ? (playerColor === 'w' ? '0-1' : '1-0') : game.isCheckmate() ? (game.turn() === 'w' ? '0-1' : '1-0') : game.isDraw() ? '1/2-1/2' : '*');
+  game.header('Event', 'Rookwise practice', 'White', playerColor === 'w' ? 'You' : `Rookwise (${engineOptions().rating || 800})`, 'Black', playerColor === 'b' ? 'You' : `Rookwise (${engineOptions().rating || 800})`, 'Result', resigned ? (playerColor === 'w' ? '0-1' : '1-0') : game.isCheckmate() ? (game.turn() === 'w' ? '0-1' : '1-0') : game.isDraw() ? '1/2-1/2' : '*');
   const url = URL.createObjectURL(new Blob([game.pgn() + '\n'], { type: 'application/x-chess-pgn' }));
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -459,7 +459,7 @@ function updateView() {
     if (link.dataset.viewLink === view) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
-  document.title = `${view === 'training' ? 'Train' : view === 'partner' ? 'Opponent' : 'Play'} • Rookmate`;
+  document.title = `${view === 'training' ? 'Train' : view === 'partner' ? 'Opponent' : 'Play'} • Rookwise`;
 }
 window.addEventListener('hashchange', updateView);
 updateView();

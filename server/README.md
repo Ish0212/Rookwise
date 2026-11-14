@@ -1,4 +1,4 @@
-# Rookmate backend
+# Rookwise backend
 
 Run npm start from the root. Default address: 127.0.0.1:3001.
 
